@@ -34,6 +34,18 @@ void App::createWindow() {
 
     SDL_Log("Creating window: %s, %d x %d", szTitle.c_str(), iWidth, iHeight);
 
+    // init opengl before window creation
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
     // create the window
     wndApp = SDL_CreateWindow(szTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         iWidth, iHeight, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | windowFlags);
@@ -42,11 +54,6 @@ void App::createWindow() {
         SDL_LogError(SDL_LOG_CATEGORY_RENDER, "Window creation failed: %s", SDL_GetError());
     }
 
-    // init opengl 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
     glCtx = SDL_GL_CreateContext(wndApp);
 
@@ -55,7 +62,6 @@ void App::createWindow() {
 
     if (!renderer) {
         SDL_LogError(SDL_LOG_CATEGORY_RENDER, "Renderer creation failed: %s", SDL_GetError());
-
     }
 }
 
