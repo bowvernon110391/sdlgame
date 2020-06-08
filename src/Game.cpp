@@ -34,6 +34,13 @@ void Game::onInit() {
         SDL_Log("face[%d]: %u %u %u", i/3, idx[i+0], idx[i+1], idx[i+2]);
     }
 
+    SDL_Log("Logging submeshes info...");
+    for (int i=0; i<m->subMeshes.size(); i++) {
+        const Mesh::SubMesh_t &s = m->subMeshes.at(i);
+
+        SDL_Log("submesh[%d]: begin=%u, count=%u", i, s.idxBegin, s.elemCount);
+    }
+
     delete m;
 }
 
@@ -56,7 +63,6 @@ void Game::onRender(float dt) {
     glViewport(0, 0, iWidth, iHeight);
     glClearColor(sA, cA, aA, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-
 }
 
 /* handle event */

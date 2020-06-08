@@ -17,13 +17,15 @@ public:
     typedef struct  
     {
         // this contains the indices begin-end only
-        uint16_t idxBegin, idxEnd;
+        uint16_t idxBegin, elemCount;
     } SubMesh_t;
     
 
 
     std::vector<float> vertBuffer; // float buffer containing our mesh vertices data
     std::vector<uint16_t> idxBuffer;
+    std::vector<SubMesh_t> subMeshes;
+
     uint32_t vertexFormat;
     uint16_t strideLength;
 
@@ -81,6 +83,14 @@ public:
 
         std::vector<uint16_t> &idx = m->idxBuffer;
         idx.insert(idx.end(), indices, indices+36);
+
+        // append submeshes info
+        SubMesh_t s;
+
+        s.idxBegin = 0;
+        s.elemCount = 12;
+
+        m->subMeshes.push_back(s);
 
         return m;
     }
