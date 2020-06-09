@@ -2,7 +2,7 @@
 SDL_CFL := $(shell pkg-config SDL2 --cflags --libs)
 GL_CFL := -lGL -lGLU
 # SDL_CFL := $(filter-out -mwindows,$(SDL_CFL))
-EXE_FILENAME := sdltest
+EXE_FILENAME := sdlgame
 BIN_DIR := bin
 
 CFLAGS := -Wl,--enable-stdcall-fixup
@@ -17,7 +17,7 @@ endif
 
 # if non windows is used
 ifeq ($(OS),Windows_NT)
-  EXE_FILENAME := sdltest.exe
+  EXE_FILENAME := $(EXE_FILENAME).exe
   GL_CFL := -lopengl32 -lglu32
 endif
 
