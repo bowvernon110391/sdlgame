@@ -8,6 +8,11 @@ char *readFileContent(const char* filename, size_t *outFilesize) {
     }
 
     int64_t filesize = SDL_RWsize(io);
+
+#ifdef _DEBUG
+	SDL_Log("reading content of %s, (%u) bytes", filename, filesize);
+#endif
+
     char *bytes = new char[filesize];
 
     if (!bytes) {
@@ -17,11 +22,15 @@ char *readFileContent(const char* filename, size_t *outFilesize) {
     }
 
     // gotta keep reading until we got all we need
-    int64_t total_read = 0, read_ret = 1;
+    size_t total_read = 0, read_ret = 1;
 
     while (total_read < filesize && read_ret != 0) {
         read_ret = SDL_RWread(io, &bytes[total_read], 1, (filesize-total_read));
         total_read += read_ret;
+
+#ifdef _DEBUG
+		SDL_Log("last_read : %u, total_read: %u", read_ret, total_read);
+#endif
     }
 
     if (total_read != filesize) {
@@ -29,6 +38,9 @@ char *readFileContent(const char* filename, size_t *outFilesize) {
         delete [] bytes;
         return NULL;
     }
+
+	// close the file
+	SDL_RWclose(io);
 
     if (outFilesize) {
         *outFilesize = filesize;

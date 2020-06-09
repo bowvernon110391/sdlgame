@@ -7,11 +7,6 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
-
-#define GL_GLEXT_PROTOTYPES 1
-
-#include <SDL_opengles2.h>
-
 #include "Shader.h"
 #include "Mesh.h"
 
@@ -20,7 +15,7 @@ class Game : public App
 private:
     float angle;
 
-    glm::mat4 proj, view, world;
+    glm::mat4 proj, view, model;
 
     Shader *simple;
     Mesh *cube;

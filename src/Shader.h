@@ -4,6 +4,8 @@
 #define GL_GLEXT_PROTOTYPES 1
 
 #include <SDL_opengles2.h>
+//#include <SDL_opengl.h>
+//#include <SDL_opengl_glext.h>
 
 #include <vector>
 
@@ -16,6 +18,8 @@
 #define ATTRIB_UV2_LOC          4
 #define ATTRIB_TANGENT_LOC      5
 #define ATTRIB_BITANGENT_LOC    6
+
+#define	ATTRIB_CUSTOM			7
 
 class Shader
 {
@@ -69,22 +73,41 @@ public:
     // compile one type of shader
     static GLuint compileShader(GLenum shaderType, const char* src, int srcLen) {
         if (!src || srcLen <= 0) {
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Invalid source");
             return 0;
         }
 
         // create shader
+#ifdef _DEBUG
+		SDL_Log("Generating shader id...");
+#endif
+
         GLuint shd = glCreateShader(shaderType);
         if (shd == 0) {
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Cannot generate shader %d", shaderType);
             return 0;
         }
 
+#ifdef _DEBUG
+		SDL_Log("Generated shader id: %u", shd);
+#endif
+
         // load source
+#ifdef _DEBUG
+		SDL_Log("loading source...");
+#endif
         glShaderSource(shd, 1, &src, &srcLen);
 
         // compile
+#ifdef _DEBUG
+		SDL_Log("Compiling shader...");
+#endif
         glCompileShader(shd);
 
         // check compile status
+#ifdef _DEBUG
+		SDL_Log("Checking compile status...");
+#endif
         GLint compiled;
         glGetShaderiv(shd, GL_COMPILE_STATUS, &compiled);
 
@@ -98,15 +121,21 @@ public:
 
                 glGetShaderInfoLog(shd, infoLen, NULL, infoLog);
 
-                SDL_LogError(SDL_LOG_CATEGORY_RENDER, "Error compiling shader: %s", infoLog);
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error compiling shader: %s", infoLog);
 
                 delete [] infoLog;
             }
 
             // failed, delete shader
             glDeleteShader(shd);
+
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed compiling shader! unknow reason: %d %d", compiled, infoLen);
             return 0;
         }
+
+#ifdef _DEBUG
+		SDL_Log("Final shader id: %u", shd);
+#endif
 
         return shd;
     }
@@ -121,17 +150,19 @@ public:
         int vsId = compileShader(GL_VERTEX_SHADER, vs, vsLen);
 
         if (!vsId) {
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed Compiling Vertex Shader!");
             return false;
         }
 
         int fsId = compileShader(GL_FRAGMENT_SHADER, fs, fsLen);
 
         if (!fsId) {
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed Compiling Fragment Shader!");
             return false;
         }
 
         // create program object nao
-        auto progId = glCreateProgram();
+        GLuint progId = glCreateProgram();
 
         if (!progId) {
             return false;
@@ -160,16 +191,23 @@ public:
                 char *infoLog = new char[infoLen];
 
                 glGetProgramInfoLog(progId, infoLen, NULL, infoLog);
-                SDL_LogError(SDL_LOG_CATEGORY_RENDER, "Program linking failed: %s", infoLog);
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Program linking failed: %s", infoLog);
 
                 delete [] infoLog;
             }
 
             glDeleteProgram(progId);
+
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed linking shader! unknow reason");
             return false;
         }
 
         *shaderId = progId;
+
+		// delete shaders
+		glDeleteShader(vsId);
+		glDeleteShader(fsId);
+
         return true;
     }
 
@@ -191,6 +229,7 @@ public:
     static Shader *loadShaderFromSources(const char* vs, const int vsLen, const char* fs, const int fsLen) {
         int progId = 0;
         if(!compileShader(vs, fs, vsLen, fsLen, &progId)) {
+			SDL_Log("Failed compiling shader. Reason? Dunno");
             return NULL;
         }
 
@@ -203,10 +242,44 @@ public:
         size_t vsLen;
         char *vs = readFileContent(vsFilename, &vsLen);
 
+		if (!vs) {
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error loading vertex shader source: %s", vsFilename);
+			return NULL;
+		}
+
+		char *vsCorrected = new char[vsLen + 1];
+		memcpy(vsCorrected, vs, vsLen);
+		vsCorrected[vsLen] = 0;
+
+		delete [] vs;
+
         size_t fsLen;
         char *fs = readFileContent(fsFilename, &fsLen);
 
-        return loadShaderFromSources(vs, (int)vsLen, fs, (int)fsLen);
+		if (!fs) {
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error loading fragment shader source: %s", fsFilename);
+			delete [] vs;
+
+			return NULL;
+		}
+
+		char *fsCorrected = new char[fsLen + 1];
+		memcpy(fsCorrected, fs, fsLen);
+		fsCorrected[fsLen] = 0;
+
+		delete [] fs;
+
+#ifdef DUMP_SHADER
+		SDL_Log(vsCorrected);
+		SDL_Log(fsCorrected);
+#endif
+
+        Shader *result = loadShaderFromSources(vsCorrected, (int)vsLen + 1, fsCorrected, (int)fsLen + 1);
+
+		delete [] vsCorrected;
+		delete [] fsCorrected;
+
+		return result;
     }
 };
 

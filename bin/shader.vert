@@ -1,6 +1,6 @@
-#version 100
+uniform mat4 matProj, matView, matModel;
 
-uniform mat4 matProj, matView, matWorld;
+uniform float time;
 
 attribute vec3 position;
 attribute vec3 color;
@@ -8,7 +8,7 @@ attribute vec3 color;
 varying vec3 vColor;
 
 void main() {
-    vColor = color;
+    vColor = (color * 0.75 + 0.25) + sin(time * 2.0) * 0.25;
 
-    gl_Position = matProj * matView * matWorld * vec4(position, 1.0);
+    gl_Position = (matProj * matView * matModel) * vec4(position, 1.0);
 }

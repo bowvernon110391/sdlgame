@@ -14,7 +14,7 @@ class Mesh
 {
 public:
 
-    typedef struct  
+    typedef struct SubMesh 
     {
         // this contains the indices begin-end only
         uint16_t idxBegin, elemCount;
@@ -29,14 +29,21 @@ public:
     uint32_t vertexFormat;
     uint16_t strideLength;
 
+	uint32_t vbo;
+	uint32_t ibo;
 
-    Mesh() {
-        strideLength = 12;
-        vertexFormat = VF_XYZ;
+    Mesh():
+	strideLength(12), vertexFormat(VF_XYZ), vbo(0), ibo(0)
+	{
     }
 
-    ~Mesh() {
-    }
+    ~Mesh();
+
+	// instantiate buffer
+	bool createBufferObjects();
+
+	// bind buffers
+	void use();
 
     // helper shiet
     static Mesh* createBox(float w) {
@@ -88,7 +95,7 @@ public:
         SubMesh_t s;
 
         s.idxBegin = 0;
-        s.elemCount = 12;
+        s.elemCount = 36;
 
         m->subMeshes.push_back(s);
 
