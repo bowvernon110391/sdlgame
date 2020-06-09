@@ -114,10 +114,16 @@ void App::run() {
     onDestroy();
 
     // clean up
+	SDL_Log("Destroying renderer...");
     SDL_DestroyRenderer(renderer);
+
+	SDL_Log("Deleting OpenGL Context...");
     SDL_GL_DeleteContext(glCtx);
+	
+	SDL_Log("Destroying window...");
     SDL_DestroyWindow(wndApp);
 
     // quit
+	SDL_Log("Quitting SDL...");
     SDL_Quit();
 }

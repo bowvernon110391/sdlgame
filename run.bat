@@ -1,2 +1,2 @@
 @echo off
-bin\sdltest.exe
+make run

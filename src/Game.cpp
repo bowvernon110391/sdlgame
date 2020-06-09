@@ -1,17 +1,18 @@
 #include "Game.h"
-#include <SDL_opengles2.h>
-// #include <GL/gl.h>
+
 #include <math.h>
 
-#include "Mesh.h"
+#include "Helper.h"
 
 Game::Game():
 App(10, "Game Test") {
     angle = 0;
+
+	cube = nullptr;
+	simple = nullptr;
 }
 
 Game::~Game() {
-
 }
 
 void Game::onInit() {
@@ -41,11 +42,36 @@ void Game::onInit() {
         SDL_Log("submesh[%d]: begin=%u, count=%u", i, s.idxBegin, s.elemCount);
     }
 
-    delete m;
+    /* size_t textSize = 0;
+    char *texts = readFileContent("shader.vert", &textSize);
+    if (texts) { 
+        SDL_Log("read %u bytes", textSize);
+        delete [] texts;
+    }
+
+    proj = glm::perspective(glm::radians(45.0f), (float) iWidth / (float)iHeight, .1f, 100.0f);
+
+    const float* p = glm::value_ptr(proj);
+
+    for (int i=0; i<4; i++) {
+        SDL_Log("%.2f %.2f %.2f %.2f", p[0 + i], p[4 + i], p[8 + i], p[12 + i]);
+    }
+
+    // load em
+    simple = Shader::loadShaderFromFile("shader.vert", "shader.frag");
+    cube = Mesh::createBox(1.0f);
+
+    delete m; */
+
+	cube = Mesh::createBox(1.0f);
+	simple = Shader::loadShaderFromFile("shader.vert", "shader.frag");
 }
 
 void Game::onDestroy() {
-
+    // do clean up here rather than at destructor
+    // if (simple) delete simple;
+	if (cube) delete cube;
+	if (simple) delete simple;
 }
 
 void Game::onUpdate(float dt) {

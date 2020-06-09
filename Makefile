@@ -1,9 +1,11 @@
 # default compiler flags
 SDL_CFL := $(shell pkg-config SDL2 --cflags --libs)
 GL_CFL := -lGL -lGLU
-SDL_CFL := $(filter-out -mwindows,$(SDL_CFL))
+# SDL_CFL := $(filter-out -mwindows,$(SDL_CFL))
 EXE_FILENAME := sdltest
 BIN_DIR := bin
+
+CFLAGS := -Wl,--enable-stdcall-fixup
 
 # when debug, disable optimization
 # and output debug symbol
@@ -23,10 +25,14 @@ endif
 all:
 #	@echo $(SDL_CFL)
 	@echo compiling on: $(OS), $(GL_CFL)
-	g++ $(CFLAGS) src/*.cpp -o $(BIN_DIR)/$(EXE_FILENAME) $(SDL_CFL) $(GL_CFL)
+	g++ -m64 $(CFLAGS) src/*.cpp -o $(BIN_DIR)/$(EXE_FILENAME) $(SDL_CFL) $(GL_CFL)
 
 debug:
 	make "BUILD=debug"
 
 clean:
 	$(RM) $(BIN_DIR)/*.exe
+
+run:
+	@echo running executables...
+	@cd bin && pwd && ./$(EXE_FILENAME)
