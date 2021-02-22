@@ -3,4 +3,6 @@
 *.pdb
 *.ilk
 *.suo
+*.iobj
+*.ipdb
 

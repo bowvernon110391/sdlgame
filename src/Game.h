@@ -14,6 +14,7 @@ class Game : public App
 {
 private:
     float angle;
+    float speed;
 
     glm::mat4 proj, view, model;
 

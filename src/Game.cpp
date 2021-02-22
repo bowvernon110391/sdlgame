@@ -5,10 +5,10 @@
 #include "Helper.h"
 
 Game::Game():
-App(10, "Game Test") {
-    angle = 0;
-
-	cube = nullptr;
+App(40, "Game Test"),
+speed(2.f), 
+angle(0.0f) {
+    cube = nullptr;
 	simple = nullptr;
 }
 
@@ -22,9 +22,9 @@ void Game::onInit() {
     SDL_Log("GLSL Ver : %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 	// init matrices
-	proj = glm::perspective(glm::degrees(45.0f), iWidth/(float)iHeight, .01f, 1000.0f);
+	proj = glm::perspective(55.0f, iWidth/(float)iHeight, .01f, 1000.0f);
 
-	view = glm::translate(0, 0, 2);
+	view = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 2));
 	view = glm::inverse(view);
 
 	model = glm::mat4(1.0f);
@@ -50,7 +50,7 @@ void Game::onInit() {
 		SDL_Log("%.2f %.2f %.2f %.2f", m[0 + i], m[4 + i], m[8 + i], m[12 + i]);
 	}
 
-	glm::mat4 mvp = glm::mul( glm::mul(proj, view), model);
+	glm::mat4 mvp = proj * view * model; // glm::mul( glm::mul(proj, view), model);
 	m = glm::value_ptr(mvp);
 	SDL_Log("MVP:");
 	for (int i=0; i<4; i++) {
@@ -58,14 +58,14 @@ void Game::onInit() {
 	}
 
 	// create cube
-	cube = Mesh::createBox(1.0f);
+	cube = Mesh::createBox(2.5f);
 	if (cube) {
 		if (cube->createBufferObjects()) {
 			SDL_Log("Buffer ids: %u %u", cube->vbo, cube->ibo);
 		}
 	}
 
-	simple = Shader::loadShaderFromFile("shader.vert", "shader.frag");
+	simple = Shader::loadShaderFromFile("shaders/shader.vert", "shaders/shader.frag");
 
 	SDL_assert(simple != NULL);
 
@@ -98,12 +98,12 @@ void Game::onDestroy() {
 }
 
 void Game::onUpdate(float dt) {
-    angle += 5.0f * dt;
+    angle += speed * dt;
 }
 
 /* Render function */
 void Game::onRender(float dt) {
-    float newAngle = angle + 5.0f * dt;
+    float newAngle = angle + speed * dt;
     
     float sA = sin(newAngle);
     float cA = cos(newAngle);
@@ -112,7 +112,7 @@ void Game::onRender(float dt) {
 	glm::vec3 axis = glm::vec3(sA, cA, aA);
 	
 
-	model = glm::translate(sA * 0.2f, cA * 0.2f, aA * 0.2f);
+	model = glm::translate(glm::mat4(1.0f), glm::vec3(sA * 0.2f, cA * 0.2f, -2.0f + aA * 0.2f) );
 	model = glm::rotate(model, newAngle, axis);
     // do render here
     glViewport(0, 0, iWidth, iHeight);
