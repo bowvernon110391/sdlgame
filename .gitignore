@@ -1,1 +1,4 @@
-lib\*
+lib/*
+.vs
+msvc/Debug
+msvc/Release

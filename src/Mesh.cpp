@@ -1,7 +1,7 @@
 #include "Mesh.h"
 
+#include <glad/glad.h>
 #include <SDL_log.h>
-#include <SDL_opengles2.h>
 
 Mesh::~Mesh() {
 	if (vbo) glDeleteBuffers(1, &vbo);

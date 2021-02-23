@@ -3,6 +3,7 @@
 
 #include <SDL.h>
 #include <SDL_platform.h>
+#include <glad/glad.h>
 #include <string>
 
 using std::string;

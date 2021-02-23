@@ -18,7 +18,11 @@ void App::createWindow() {
 
     SDL_Log("Detected platform: %s", platformName.c_str());
 
+    bool useGLES2 = false;
+
     if (platformName == string("Android") || platformName == string("iOS")) {
+
+        useGLES2 = true;
 
         SDL_DisplayMode dm;
         if (SDL_GetDesktopDisplayMode(0, &dm) == 0) {
@@ -57,6 +61,28 @@ void App::createWindow() {
 
 
     glCtx = SDL_GL_CreateContext(wndApp);
+
+    //SDL_GL_MakeCurrent(wndApp, glCtx);
+
+    // initialize glad
+    if (!useGLES2) {
+        // use core gl
+        if (!gladLoadGLLoader(SDL_GL_GetProcAddress)) {
+            SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to initialize Core GL Functions!");
+            exit(-1);
+        }
+
+        SDL_Log("Core GL Initialized!");
+    }
+    else {
+        // use gles
+        if (!gladLoadGLES2Loader(SDL_GL_GetProcAddress)) {
+            SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to initialize GLES 2 Functions!");
+            exit(-1);
+        }
+        
+        SDL_Log("Initialized GLES2 functions!");
+    }
 
     // create renderer that is hardware accelerated and support render to texture
     renderer = SDL_CreateRenderer(wndApp, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
