@@ -1,9 +1,9 @@
 #ifndef __APP_H__
 #define __APP_H__
 
+#include <glad/glad.h>
 #include <SDL.h>
 #include <SDL_platform.h>
-#include <glad/glad.h>
 #include <string>
 
 using std::string;

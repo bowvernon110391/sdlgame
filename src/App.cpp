@@ -65,24 +65,11 @@ void App::createWindow() {
     //SDL_GL_MakeCurrent(wndApp, glCtx);
 
     // initialize glad
-    if (!useGLES2) {
-        // use core gl
-        if (!gladLoadGLLoader(SDL_GL_GetProcAddress)) {
-            SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to initialize Core GL Functions!");
-            exit(-1);
-        }
-
-        SDL_Log("Core GL Initialized!");
+    if (!gladLoadGLES2Loader(SDL_GL_GetProcAddress)) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "failed to load GLES2!");
+        exit(-1);
     }
-    else {
-        // use gles
-        if (!gladLoadGLES2Loader(SDL_GL_GetProcAddress)) {
-            SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to initialize GLES 2 Functions!");
-            exit(-1);
-        }
-        
-        SDL_Log("Initialized GLES2 functions!");
-    }
+    SDL_Log("GLAD GLES2 loaded!");
 
     // create renderer that is hardware accelerated and support render to texture
     renderer = SDL_CreateRenderer(wndApp, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);

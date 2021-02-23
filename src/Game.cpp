@@ -117,7 +117,7 @@ void Game::onRender(float dt) {
     // do render here
     glViewport(0, 0, iWidth, iHeight);
     //glClearColor(sA, cA, aA, 1.0f);
-	glClearDepth(1.0f);
+	glClearDepthf(1.0f);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 	// bind shader and set uniforms?
