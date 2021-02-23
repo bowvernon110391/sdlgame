@@ -19,6 +19,7 @@ void App::createWindow() {
     SDL_Log("Detected platform: %s", platformName.c_str());
 
     if (platformName == string("Android") || platformName == string("iOS")) {
+
         SDL_DisplayMode dm;
         if (SDL_GetDesktopDisplayMode(0, &dm) == 0) {
             // no error

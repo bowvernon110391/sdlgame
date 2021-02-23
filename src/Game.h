@@ -29,6 +29,9 @@ public:
     void onUpdate(float dt);
     void onRender(float dt);
     void onEvent(SDL_Event *e);
+
+private:
+    void computeProjection();
 };
 
 

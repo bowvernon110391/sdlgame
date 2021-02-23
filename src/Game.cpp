@@ -22,7 +22,7 @@ void Game::onInit() {
     SDL_Log("GLSL Ver : %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 	// init matrices
-	proj = glm::perspective(55.0f, iWidth/(float)iHeight, .01f, 1000.0f);
+	computeProjection();
 
 	view = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 2));
 	view = glm::inverse(view);
@@ -146,6 +146,7 @@ void Game::onRender(float dt) {
 void Game::onEvent(SDL_Event *e) {
     if (e->type == SDL_QUIT) {
         this->setRunFlag(false);
+		return;
     } else if (e->type == SDL_KEYDOWN) {
         switch (e->key.keysym.sym) {
             case SDLK_ESCAPE:
@@ -153,5 +154,21 @@ void Game::onEvent(SDL_Event *e) {
                 this->setRunFlag(false);
             break;
         }
-    }
+		return;
+	}
+	else if (e->type == SDL_WINDOWEVENT) {
+		if (e->window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+			// store new window size and recreate projection matrix
+			this->iWidth = e->window.data1;
+			this->iHeight = e->window.data2;
+
+			SDL_Log("Window resized to: (%d x %d)", this->iWidth, this->iHeight);
+
+			computeProjection();
+		}
+	}
+}
+
+void Game::computeProjection() {
+	proj = glm::perspective(55.0f, iWidth / (float)iHeight, .01f, 1000.0f);
 }
