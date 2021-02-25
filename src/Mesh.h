@@ -46,6 +46,46 @@ public:
 	void use();
 
     // helper shiet
+    static Mesh* createTexturedQuad(float w) {
+        if (w <= 0.f)
+            w = 1.f;
+
+        const float half = .5f * w;
+
+        Mesh* m = new Mesh();
+
+        m->vertexFormat = VF_XYZ | VF_COLOR | VF_UV;
+        m->strideLength = sizeof(float) * 8;
+
+        // create 4 vertices
+        float verts[] = {
+            -half-0.1f, -half, 0,    1, 0, 0,    0, 0,
+            half, -half, 0,     0, 1, 0,    1, 0,
+            half, half+0.12f, 0,      0, 0, 1,    1, 1,
+            -half, half, 0,     1, 1, 0,   0, 1
+        };
+
+        std::vector<float>& v = m->vertBuffer;
+        v.insert(v.end(), verts, verts + 32);
+
+        // the indices is simple
+        uint16_t indices[] = {
+            0, 1, 2,
+            0, 2, 3
+        };
+        
+        std::vector<uint16_t>& idx = m->idxBuffer;
+        idx.insert(idx.end(), indices, indices + 6);
+
+        SubMesh s;
+        s.idxBegin = 0;
+        s.elemCount = idx.size();
+
+        m->subMeshes.push_back(s);
+
+        return m;
+    }
+
     static Mesh* createBox(float w) {
         if (w <= 0.f)
             w = 1.f;

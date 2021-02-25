@@ -87,7 +87,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);SDL_MAIN_HANDLED</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;CLEAR_DEPTH_GL_CORE;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);SDL_MAIN_HANDLED</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\projects\SDL2-2.0.12\include;C:\projects\glm;$(SolutionDir)..\src\glad\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -105,7 +105,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);SDL_MAIN_HANDLED</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;CLEAR_DEPTH_GL_CORE;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);SDL_MAIN_HANDLED</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\projects\SDL2-2.0.12\include;C:\projects\glm;$(SolutionDir)..\src\glad\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -152,15 +152,34 @@
     <ClCompile Include="..\src\Game.cpp" />
     <ClCompile Include="..\src\glad\src\glad.c" />
     <ClCompile Include="..\src\Helper.cpp" />
+    <ClCompile Include="..\src\imgui\imgui.cpp" />
+    <ClCompile Include="..\src\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\src\imgui\imgui_impl_bowie.cpp" />
+    <ClCompile Include="..\src\imgui\imgui_impl_sdl.cpp" />
+    <ClCompile Include="..\src\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\src\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Mesh.cpp" />
+    <ClCompile Include="..\src\Texture2d.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\App.h" />
     <ClInclude Include="..\src\Game.h" />
     <ClInclude Include="..\src\Helper.h" />
+    <ClInclude Include="..\src\imgui\imconfig.h" />
+    <ClInclude Include="..\src\imgui\imgui.h" />
+    <ClInclude Include="..\src\imgui\imgui_impl_bowie.h" />
+    <ClInclude Include="..\src\imgui\imgui_impl_sdl.h" />
+    <ClInclude Include="..\src\imgui\imgui_internal.h" />
+    <ClInclude Include="..\src\imgui\imstb_rectpack.h" />
+    <ClInclude Include="..\src\imgui\imstb_textedit.h" />
+    <ClInclude Include="..\src\imgui\imstb_truetype.h" />
     <ClInclude Include="..\src\Mesh.h" />
     <ClInclude Include="..\src\Shader.h" />
+    <ClInclude Include="..\src\stb\stb_image.h" />
+    <ClInclude Include="..\src\stb\stb_image_resize.h" />
+    <ClInclude Include="..\src\stb\stb_image_write.h" />
+    <ClInclude Include="..\src\Texture2d.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

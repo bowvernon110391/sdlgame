@@ -3,6 +3,9 @@
 
 #include <SDL.h>
 
-char* readFileContent(const char* filename, size_t *filesize = NULL);
+namespace Helper {
+	char* readFileContent(const char* filename, size_t *filesize = NULL);
+}
+
 
 #endif

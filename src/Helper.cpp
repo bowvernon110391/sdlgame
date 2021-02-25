@@ -1,6 +1,12 @@
 #include "Helper.h"
 
-char *readFileContent(const char* filename, size_t *outFilesize) {
+/// <summary>
+/// readFileContent: reads the bytes of a file (from assets folder supposedly)
+/// </summary>
+/// <param name="filename">the filename relative to assets folder</param>
+/// <param name="outFilesize">pointer to size of the read buffer</param>
+/// <returns></returns>
+char* Helper::readFileContent(const char* filename, size_t *outFilesize) {
     SDL_RWops *io = SDL_RWFromFile(filename, "rb");
     if (!io) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed opening '%s' : %s", filename, SDL_GetError());

@@ -233,6 +233,8 @@ public:
 
     // create shader based on filename?
     static Shader *loadShaderFromFile(const char* vsFilename, const char* fsFilename) {
+        using namespace Helper;
+
         size_t vsLen;
         char *vs = readFileContent(vsFilename, &vsLen);
 

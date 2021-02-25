@@ -12,7 +12,7 @@ class App
 {
 private:
     /* data */
-    bool bRun;  // is it running? 
+    bool bRun, bUseGLES;  // is it running? 
     int iTickRate;
 
     void pollEvent();
@@ -25,6 +25,8 @@ protected:
     SDL_Window *wndApp;
     int iWidth, iHeight;
     string szTitle;
+
+    int fps;
 
     SDL_GLContext glCtx;
 
