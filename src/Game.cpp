@@ -9,11 +9,18 @@
 //#include "imgui/imgui_impl_opengl3.h"
 #include "imgui/imgui_impl_bowie.h"
 
+#define PROJECTION_PERSPECTIVE	0
+#define PROJECTION_ORTHOGONAL	1
+
 Game::Game():
 App(40, "Game Test"),
 speed(0.f), 
 angle(0.0f),
-animate(true) {
+animate(true),
+perspectiveFOV(55.0f),
+orthoRange(10.0f),
+projectionType(PROJECTION_PERSPECTIVE)
+{
     cube = nullptr;
 	simple = nullptr;
 }
@@ -26,9 +33,6 @@ void Game::onInit() {
     SDL_Log("Vendor : %s", glGetString(GL_VENDOR));
     SDL_Log("Version : %s", glGetString(GL_VERSION));
     SDL_Log("GLSL Ver : %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
-
-	// init matrices
-	computeProjection();
 
 	view = glm::lookAt(glm::vec3(0, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
@@ -137,15 +141,15 @@ void Game::onRender(float dt) {
     float newAngle = angle + speed * dt;
 	if (!animate)
 		newAngle = angle;
+
+	computeProjection();
     
     float sA = sin(newAngle);
     float cA = cos(newAngle);
     float aA = ((sA + cA) * .5f);
 
 	glm::vec3 axis = glm::vec3(sA, cA, aA);
-
-	/*model = glm::translate(glm::mat4(1.0f), glm::vec3(sA * 0.2f, cA * 0.2f, -2.0f + aA * 0.2f) );
-	model = glm::rotate(model, newAngle, axis);*/
+	
 	model = glm::rotate(glm::mat4(1.0f), newAngle, axis);
     // do render here
     glViewport(0, 0, iWidth, iHeight);
@@ -189,10 +193,31 @@ void Game::onRender(float dt) {
 	// render imgui stuffs
 	beginRenderImGui();
 
-	ImGui::Begin("GUI Test", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+	ImGui::Begin("App Config", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 	ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "Render speed: %d FPS", fps);
 	ImGui::SliderFloat("Cube Speed", &speed, 0.0f, 10.0f, "%.2f");
 	ImGui::Checkbox("Animate?", &animate);
+
+	// use perspective or orthogonal?
+	ImGui::Separator();
+	ImGui::Text("Projection Type:");
+	if (ImGui::RadioButton("Perspective", &projectionType, PROJECTION_PERSPECTIVE)) {
+	}
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Orthogonal", &projectionType, PROJECTION_ORTHOGONAL)) {
+	}
+
+	if (projectionType == PROJECTION_PERSPECTIVE) {
+		// show slider fov
+		ImGui::SliderFloat("FOV", &perspectiveFOV, 45.0f, 150.0f, "%.2f Deg");
+	}
+	else if (projectionType == PROJECTION_ORTHOGONAL) {
+		// show slider range
+		ImGui::SliderFloat("Range", &orthoRange, 1.0f, 20.0f, "%.2f");
+	}	
+	// print debug info?
+	ImGui::TextColored(ImVec4(.2f, 1.f, 0, 1), "glClearDepth: 0x%x", glClearDepth);
+	ImGui::TextColored(ImVec4(0, 1.f, .2f, 1), "glClearDepthf: 0x%x", glClearDepthf);
 	ImGui::End();
 
 	// spawn render data
@@ -237,15 +262,38 @@ void Game::onEvent(SDL_Event *e) {
 void Game::computeProjection() {
 	//proj = glm::perspective(55.0f, iWidth / (float)iHeight, .01f, 1000.0f);
 	//proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, -10.f, 10.f);
-	proj = glm::perspectiveFov(glm::radians(55.0f), (float)iWidth, (float)iHeight, .1f, 100.0f);
+	if (projectionType == PROJECTION_PERSPECTIVE)
+		proj = glm::perspectiveFov(glm::radians(perspectiveFOV), (float)iWidth, (float)iHeight, .1f, 100.0f);
+	else if (projectionType == PROJECTION_ORTHOGONAL) {
+		float aspect = (float)iWidth / (float)iHeight;
+		float hor = orthoRange * 0.5f * aspect;
+		float vert = orthoRange * 0.5f;
+		proj = glm::ortho(-hor, hor, -vert, vert, .1f, 100.0f);
+	}
 }
 
 void Game::initImGui() {
+	// set proper scale
+	float ddpi, hdpi, vdpi, scale = 1.0f;
+	if (SDL_GetDisplayDPI(0, &ddpi, &hdpi, &vdpi) == -1) {
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "No DPI Info available!");
+	}
+	else {
+		SDL_Log("DPI Info (d, h, v): %.2f, %.2f, %.2f", ddpi, hdpi, vdpi);
+		scale = (int) (vdpi / 96.0f);
+	}
+
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 
+	ImFontConfig cfg;
+
+	cfg.SizePixels = 13.0f * scale;
+	io.Fonts->AddFontDefault(&cfg);
+
 	ImGui::StyleColorsDark();
+	ImGui::GetStyle().ScaleAllSizes(scale);
 
 	//const char* glsl_version = "#version 100"; // (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
 	//SDL_Log("Initializing ImGui with GLSL Version: %s", glsl_version);

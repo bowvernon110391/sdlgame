@@ -59,9 +59,9 @@ public:
 
         // create 4 vertices
         float verts[] = {
-            -half-0.1f, -half, 0,    1, 0, 0,    0, 0,
+            -half, -half, 0,    1, 0, 0,    0, 0,
             half, -half, 0,     0, 1, 0,    1, 0,
-            half, half+0.12f, 0,      0, 0, 1,    1, 1,
+            half, half, 0,      0, 0, 1,    1, 1,
             -half, half, 0,     1, 1, 0,   0, 1
         };
 

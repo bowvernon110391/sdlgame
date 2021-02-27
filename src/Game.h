@@ -18,6 +18,10 @@ private:
     float speed;
     bool animate;
 
+    int projectionType;
+    float perspectiveFOV;
+    float orthoRange;
+
     glm::mat4 proj, view, model;
 
     Shader *simple;

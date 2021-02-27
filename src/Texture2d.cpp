@@ -28,7 +28,8 @@ Texture2D* Texture2D::loadFromMemory(const char* buf, int bufSize,
 		unsigned char* decodedImage = NULL;
 		int w, h, bpp;
 
-		// decode using stb
+		// decode using stb, vertically flipped for opengl
+		stbi_set_flip_vertically_on_load(1);
 		decodedImage = stbi_load_from_memory((const unsigned char*)buf, bufSize, &w, &h, &bpp, 0);
 		failed = decodedImage == NULL;
 

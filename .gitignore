@@ -2,5 +2,4 @@ lib/*
 .vs
 msvc/Debug
 msvc/Release
-imgui.ini
 **/imgui.ini
