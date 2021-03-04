@@ -23,6 +23,11 @@ projectionType(PROJECTION_PERSPECTIVE)
 {
     cube = nullptr;
 	simple = nullptr;
+	
+	bgColor[0] = .2f;
+	bgColor[1] = .5f;
+	bgColor[2] = .72f;
+	bgColor[3] = 1.f;
 }
 
 Game::~Game() {
@@ -106,11 +111,13 @@ void Game::onInit() {
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(.2f, .5f, .3f, .1f);
 
-#if defined(CLEAR_DEPTH_GL_CORE)
-	glClearDepth(1.0);
-#else
-	glClearDepthf(1.0f);
-#endif
+	// clear depth based on available function
+	if (glClearDepth) {
+		glClearDepth(1.0);
+	}
+	else if (glClearDepthf) {
+		glClearDepthf(1.0f);
+	}
 
 	glEnableVertexAttribArray(ATTRIB_POS_LOC);
 	glEnableVertexAttribArray(ATTRIB_COL_LOC);
@@ -154,6 +161,7 @@ void Game::onRender(float dt) {
     // do render here
     glViewport(0, 0, iWidth, iHeight);
     //glClearColor(sA, cA, aA, 1.0f);
+	glClearColor(bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
 	glEnable(GL_DEPTH_TEST);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
@@ -190,13 +198,54 @@ void Game::onRender(float dt) {
 	// disable depth test?
 	glDisable(GL_DEPTH_TEST);
 
+	static bool showColorPicker = false;
+	static const int commentLength = 256;
+	static char comment[commentLength] = { 0 };
+
 	// render imgui stuffs
 	beginRenderImGui();
 
+	// draw text on corner?
+	ImGui::Begin("Screen", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs 
+		| ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground
+		| ImGuiWindowFlags_NoScrollbar
+	);
+	ImGui::SetWindowPos(ImVec2(0, 0));
+	ImGui::SetWindowSize(ImVec2(iWidth, iHeight));
+	ImGui::TextColored(ImVec4(1, 1, 0, 1), "FPS: %03d", fps);
+	// check if imgui want text
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.WantTextInput) {
+		ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.2f, 1.0f), "Text Input NEEDED!");
+	}
+	else {
+		ImGui::TextColored(ImVec4(.2f, .5f, 1.0f, 1.0f), "Text Input NOT NEEDED!");
+	}
+	// check if keyboard is shown
+	if (SDL_HasScreenKeyboardSupport) {
+		ImGui::Text("Device has screen keyboard!");
+	}
+	else {
+		ImGui::Text("No screen keyboard detected!");
+	}
+	
+	if (SDL_IsScreenKeyboardShown(wndApp)) {
+		ImGui::Text("Screen Keyboard shown");
+	}
+	else {
+		ImGui::Text("Screen Keyboard hidden");
+	}
+	ImGui::End();
+
 	ImGui::Begin("App Config", NULL, ImGuiWindowFlags_AlwaysAutoResize);
-	ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "Render speed: %d FPS", fps);
+	//ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "Render speed: %d FPS", fps);
 	ImGui::SliderFloat("Cube Speed", &speed, 0.0f, 10.0f, "%.2f");
 	ImGui::Checkbox("Animate?", &animate);
+	ImGui::Checkbox("Change Bg Col", &showColorPicker);
+
+	// test multiline
+	ImGui::Separator();
+	ImGui::InputTextMultiline("Comment:", comment, commentLength);
 
 	// use perspective or orthogonal?
 	ImGui::Separator();
@@ -216,9 +265,15 @@ void Game::onRender(float dt) {
 		ImGui::SliderFloat("Range", &orthoRange, 1.0f, 20.0f, "%.2f");
 	}	
 	// print debug info?
-	ImGui::TextColored(ImVec4(.2f, 1.f, 0, 1), "glClearDepth: 0x%x", glClearDepth);
-	ImGui::TextColored(ImVec4(0, 1.f, .2f, 1), "glClearDepthf: 0x%x", glClearDepthf);
+	ImGui::TextColored(ImVec4(.82f, 1.f, 0, 1), "glClearDepth: 0x%x", glClearDepth);
+	ImGui::TextColored(ImVec4(0, 1.f, .82f, 1), "glClearDepthf: 0x%x", glClearDepthf);
 	ImGui::End();
+
+	if (showColorPicker) {
+		ImGui::Begin("Change BG Color", &showColorPicker, ImGuiWindowFlags_AlwaysAutoResize);
+		ImGui::ColorPicker4("Bg Color", &bgColor[0]);
+		ImGui::End();
+	}
 
 	// spawn render data
 	endRenderImGui();
@@ -231,18 +286,22 @@ void Game::onRender(float dt) {
 
 /* handle event */
 void Game::onEvent(SDL_Event *e) {
-	// handle imgui event first
-	ImGui_ImplSDL2_ProcessEvent(e);
+	SDL_SetHint(SDL_HINT_IME_INTERNAL_EDITING, "0");
+	// override imgui sdl event processing
+	if (!ImGui_ImplBowie_ProcessEvent(e))
+		ImGui_ImplSDL2_ProcessEvent(e);
 
+	ImGuiIO& io = ImGui::GetIO();
+	
     if (e->type == SDL_QUIT) {
         this->setRunFlag(false);
 		return;
-    } else if (e->type == SDL_KEYDOWN) {
+    } else if (e->type == SDL_KEYDOWN || e->type == SDL_KEYUP) {
         switch (e->key.keysym.sym) {
             case SDLK_ESCAPE:
             case SDLK_AC_BACK:
                 this->setRunFlag(false);
-            break;
+            return;
         }
 		return;
 	}
@@ -299,7 +358,7 @@ void Game::initImGui() {
 	//SDL_Log("Initializing ImGui with GLSL Version: %s", glsl_version);
 
 	ImGui_ImplSDL2_InitForOpenGL(wndApp, glCtx);
-	ImGui_ImplBowie_Init();
+	ImGui_ImplBowie_Init(wndApp);
 	//ImGui_ImplOpenGL3_Init(glsl_version);
 }
 

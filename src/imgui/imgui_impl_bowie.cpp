@@ -12,13 +12,17 @@ static Shader* fontShader = 0;
 static glm::mat4 projMat;
 static GLuint vboHandle;
 static GLuint iboHandle;
+static bool showVirtualKeyboard = false;
+static SDL_Window* wndApp = 0;
 
 Texture2D* getFontTexture() {
 	return fontTexture;
 }
 
-bool ImGui_ImplBowie_Init() {
+bool ImGui_ImplBowie_Init(SDL_Window *wnd) {
 	SDL_Log("Initializing bowie's IMGUI Implementation...");
+
+	wndApp = wnd;
 
 	ImGuiIO& io = ImGui::GetIO();
 	io.BackendRendererName = "imgui_impl_bowie";
@@ -35,8 +39,52 @@ void ImGui_ImplBowie_Shutdown() {
 }
 
 void ImGui_ImplBowie_NewFrame() {
+	static bool lastKeyboardShown = false;
+
+	// track the keyboard shown flag
+	bool keyboardShown = SDL_IsScreenKeyboardShown(wndApp);
+
 	// for now, do nothing
 	//SDL_Log("Imgui_Bowie_NewFrame()");
+	// show virtual keyboard when needed
+	ImGuiIO& io = ImGui::GetIO();
+
+	// gotta check some shiet
+	if (io.WantTextInput && !keyboardShown) {
+		// text input wanted, keyboard not shown, show it
+		SDL_StartTextInput();
+	}
+
+	// maybe no longer needed
+	// or still in text mode when not needed
+	if (!io.WantTextInput && (keyboardShown || SDL_IsTextInputActive())) {
+		SDL_StopTextInput();
+	}
+
+	// stop text input if now keyboard is hidden but last time it was shown
+	if (!keyboardShown && lastKeyboardShown) {
+		ImGui::SetWindowFocus(nullptr);
+	}
+
+	// track last keyboard shown value
+	lastKeyboardShown = keyboardShown;
+
+	// show log status?
+	static int backspaceCounter = 0;
+	bool specialHandleMode = io.WantTextInput && SDL_IsScreenKeyboardShown(wndApp);
+
+	if (specialHandleMode) {
+		//SDL_Log("BS: %d", io.KeysDown[SDL_SCANCODE_BACKSPACE]);
+		// gotta check if we're doing more than one frame already
+		if (io.KeysDown[SDL_SCANCODE_BACKSPACE]) {
+			////SDL_Log("BACKSPACE IS ON WITH COUNTER %d", backspaceCounter);
+			if (++backspaceCounter > 1) {
+				//SDL_Log("BACKSPACE OFF @ %d", backspaceCounter);
+				backspaceCounter = 0;
+				io.KeysDown[SDL_SCANCODE_BACKSPACE] = false;
+			}
+		}
+	}
 }
 
 bool ImGui_ImplBowie_CreateFontsTexture() {
@@ -275,4 +323,40 @@ void ImGui_ImplBowie_RenderDrawData(ImDrawData* draw_data) {
 	// disable blending
 	glDisable(GL_BLEND);
 	glDisable(GL_SCISSOR_TEST);
+}
+
+bool ImGui_ImplBowie_ProcessEvent(SDL_Event* e) {
+	ImGuiIO& io = ImGui::GetIO();
+	bool specialHandleMode = io.WantTextInput && SDL_IsScreenKeyboardShown(wndApp);
+
+	// check backspace key status
+	// now handle specific event here
+	switch (e->type) {
+	case SDL_KEYUP:
+		// prevent imgui to handle backspace release
+		if (e->key.keysym.scancode == SDL_SCANCODE_BACKSPACE) {
+			return true;
+		}
+		break;
+	case SDL_KEYDOWN:
+		// handle special text input for mobile devices
+		if (specialHandleMode) {
+			// okay, if it's return key, add character
+			if (e->key.keysym.scancode == SDL_SCANCODE_RETURN) {
+				io.AddInputCharacter('\n');
+				return true;
+			}
+
+			// if it's backspace, do something else
+			if (e->key.keysym.scancode == SDL_SCANCODE_BACKSPACE) {
+				//SDL_Log("BACKSPACE oldstate %d", io.KeysDown[SDL_SCANCODE_BACKSPACE]);
+				//SDL_Log("Forcing BACKSPACE!");
+				io.KeysDown[SDL_SCANCODE_BACKSPACE] = true;
+				return true;
+			}
+		}
+		break;
+	}
+	
+	return false;
 }

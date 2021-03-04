@@ -17,6 +17,7 @@ private:
     float angle;
     float speed;
     bool animate;
+    float bgColor[4];
 
     int projectionType;
     float perspectiveFOV;
