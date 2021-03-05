@@ -1,11 +1,11 @@
 # default compiler flags
-SDL_CFL := $(shell pkg-config SDL2 --cflags --libs)
-GL_CFL := -lGL -lGLU
+SDL_CFL := $(shell pkg-config --cflags --libs sdl2)
+GL_CFL := -lGL -lGLU -ldl
 # SDL_CFL := $(filter-out -mwindows,$(SDL_CFL))
 EXE_FILENAME := sdlgame
 BIN_DIR := bin
 
-CFLAGS := -Wl,--enable-stdcall-fixup
+CFLAGS := -I./src/glad/include
 
 # when debug, disable optimization
 # and output debug symbol
@@ -25,7 +25,7 @@ endif
 all:
 #	@echo $(SDL_CFL)
 	@echo compiling on: $(OS), $(GL_CFL)
-	g++ -m64 $(CFLAGS) src/*.cpp -o $(BIN_DIR)/$(EXE_FILENAME) $(SDL_CFL) $(GL_CFL)
+	g++ -m64 $(CFLAGS) src/*.cpp src/imgui/*.cpp src/glad/src/glad.c -o $(BIN_DIR)/$(EXE_FILENAME) $(SDL_CFL) $(GL_CFL)
 
 debug:
 	make "BUILD=debug"
