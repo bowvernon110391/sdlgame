@@ -71,6 +71,7 @@ void ImGui_ImplBowie_NewFrame() {
 
 	// show log status?
 	static int backspaceCounter = 0;
+	static int returnCounter = 0;
 	bool specialHandleMode = io.WantTextInput && SDL_IsScreenKeyboardShown(wndApp);
 
 	if (specialHandleMode) {
@@ -82,6 +83,14 @@ void ImGui_ImplBowie_NewFrame() {
 				//SDL_Log("BACKSPACE OFF @ %d", backspaceCounter);
 				backspaceCounter = 0;
 				io.KeysDown[SDL_SCANCODE_BACKSPACE] = false;
+			}
+		}
+
+		// handle return key separately
+		if (io.KeysDown[SDL_SCANCODE_RETURN]) {
+			if (++returnCounter > 1) {
+				returnCounter = 0;
+				io.KeysDown[SDL_SCANCODE_RETURN] = false;
 			}
 		}
 	}
@@ -333,25 +342,29 @@ bool ImGui_ImplBowie_ProcessEvent(SDL_Event* e) {
 	// now handle specific event here
 	switch (e->type) {
 	case SDL_KEYUP:
-		// prevent imgui to handle backspace release
-		if (e->key.keysym.scancode == SDL_SCANCODE_BACKSPACE) {
-			return true;
+		// prevent imgui to handle backspace + enter release
+		if (specialHandleMode) {
+			if (e->key.keysym.scancode == SDL_SCANCODE_BACKSPACE 
+				|| e->key.keysym.scancode == SDL_SCANCODE_RETURN) {
+				return true;
+			}
 		}
 		break;
 	case SDL_KEYDOWN:
 		// handle special text input for mobile devices
 		if (specialHandleMode) {
 			// okay, if it's return key, add character
-			if (e->key.keysym.scancode == SDL_SCANCODE_RETURN) {
+			/*if (e->key.keysym.scancode == SDL_SCANCODE_RETURN) {
 				io.AddInputCharacter('\n');
 				return true;
-			}
+			}*/
 
 			// if it's backspace, do something else
-			if (e->key.keysym.scancode == SDL_SCANCODE_BACKSPACE) {
+			if (e->key.keysym.scancode == SDL_SCANCODE_BACKSPACE
+				|| e->key.keysym.scancode == SDL_SCANCODE_RETURN) {
 				//SDL_Log("BACKSPACE oldstate %d", io.KeysDown[SDL_SCANCODE_BACKSPACE]);
 				//SDL_Log("Forcing BACKSPACE!");
-				io.KeysDown[SDL_SCANCODE_BACKSPACE] = true;
+				io.KeysDown[e->key.keysym.scancode] = true;
 				return true;
 			}
 		}
