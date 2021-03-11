@@ -22,7 +22,7 @@ vec3 computeDiffuseColor(vec3 lightdir, vec3 normal, vec3 lightcolor, vec3 atten
 	float dp = max(0, dot(normLightdir, normal));
 	float atten = 1.0 / (attenuation.r + dist * attenuation.g + dist * dist * attenuation.b);
 	
-	return lightcolor * dp;
+	return lightcolor * (dp * atten);
 }
 
 // compute final color?

@@ -275,7 +275,7 @@ void Game::onRender(float dt) {
 	glUniformMatrix4fv(simple->getUniformLocation(3), 1, GL_FALSE, glm::value_ptr(model));*/
 	//glUniformMatrix3fv(simple->getUniformLocation(MAT_NORMAL_UNIFORM_LOC), 1, GL_FALSE, glm::value_ptr(normalMatrix));
 
-	glm::vec3 scale = glm::vec3(2.5f, .25f, 3.2f);
+	glm::vec3 scale = glm::vec3(3.5f, .25f, 3.2f);
 	//glUniform3fv(simple->getUniformLocation(SCALE_UNIFORM_LOC), 1, glm::value_ptr(scale));
 
 	// use texture
