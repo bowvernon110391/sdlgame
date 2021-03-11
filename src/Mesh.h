@@ -86,9 +86,8 @@ public:
         return m;
     }
 
-    static Mesh* createBox(float w) {
-        if (w <= 0.f)
-            w = 1.f;
+    static Mesh* createUnitBox() {
+        float w = 1.f;
 
         // now we create
         float half = .5f * w;
@@ -97,35 +96,61 @@ public:
         // 8 vertices
         Mesh *m = new Mesh();
 
-        m->vertexFormat = VF_XYZ | VF_COLOR;
-        m->strideLength = 24;
+        m->vertexFormat = VF_XYZ | VF_NORMAL | VF_UV;
+        m->strideLength = 32;
 
-        // create 8 vertices, front set first, then back
+        // create 24 vertices, front set first, then back
         // 
-        float verts[48] = {
-            // xyz rgb
-            -half, -half, half, 0, 0, 1,
-             half, -half, half, 1, 0, 1,
-             half,  half, half, 1, 1, 1,
-            -half,  half, half, 0, 1, 1,
+        float verts[] = {
+            // xyz uv
+            // front
+            -half, -half, half, 0, 0, 1,  0, 0,
+             half, -half, half, 0, 0, 1,  1, 0,
+             half,  half, half, 0, 0, 1,  1, 1,
+            -half,  half, half, 0, 0, 1,  0, 1,
 
-             half, -half,-half, 1, 0, 0,
-            -half, -half,-half, 0, 0, 0,
-            -half,  half,-half, 0, 1, 0,
-             half,  half,-half, 1, 1, 0
+            // back
+             half, -half,-half, 0, 0,-1,  0, 0,
+            -half, -half,-half, 0, 0,-1,  1, 0,
+            -half,  half,-half, 0, 0,-1,  1, 1,
+             half,  half,-half, 0, 0,-1,  0, 1,
+
+             // right side
+             half, -half, half, 1, 0, 0,  0, 0,
+             half, -half, -half, 1, 0, 0,  1, 0,
+             half, half, -half, 1, 0, 0,  1, 1,
+             half, half, half, 1, 0, 0,  0, 1,
+
+             // left side
+             -half, -half, -half, -1, 0, 0,  0, 0,
+             -half, -half,  half, -1, 0, 0,  1, 0,
+             -half,  half,  half, -1, 0, 0,  1, 1,
+             -half,  half, -half, -1, 0, 0,  0, 1,
+             
+             // top side
+             -half,  half,  half, 0, 1, 0,  0, 0,
+              half,  half,  half, 0, 1, 0,  1, 0,
+              half,  half, -half, 0, 1, 0,  1, 1,
+             -half,  half, -half, 0, 1, 0,  0, 1,
+             
+             // bottom side
+             -half, -half, -half, 0, -1, 0,  0, 0,
+              half, -half, -half, 0, -1, 0,  1, 0,
+              half, -half,  half, 0, -1, 0,  1, 1,
+             -half, -half,  half, 0, -1, 0,  0, 1,
         };
         
         std::vector<float> &v = m->vertBuffer;
-        v.insert(v.end(), verts, verts+48);
+        v.insert(v.end(), verts, verts+(sizeof(verts)/sizeof(float)));
 
         // index em
         uint16_t indices[36] = {
             0, 1, 2, 0, 2, 3,   // front
-            1, 4, 7, 1, 7, 2,   // right
             4, 5, 6, 4, 6, 7,   // back
-            5, 0, 3, 5, 3, 6,   // left
-            3, 2, 6, 6, 2, 7,   // top
-            5, 4, 0, 0, 4, 1    // bottom
+            8, 9, 10, 8, 10, 11,   // right
+            12, 13, 14, 12, 14, 15,   // left
+            16, 17, 18, 16, 18, 19,   // top            
+            20, 21, 22, 20, 22, 23   // bottom
         };
 
         std::vector<uint16_t> &idx = m->idxBuffer;

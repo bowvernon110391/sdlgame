@@ -164,6 +164,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\App.h" />
+    <ClInclude Include="..\src\BoxShader.h" />
+    <ClInclude Include="..\src\DebugLightShader.h" />
     <ClInclude Include="..\src\Game.h" />
     <ClInclude Include="..\src\Helper.h" />
     <ClInclude Include="..\src\imgui\imconfig.h" />
@@ -174,6 +176,7 @@
     <ClInclude Include="..\src\imgui\imstb_rectpack.h" />
     <ClInclude Include="..\src\imgui\imstb_textedit.h" />
     <ClInclude Include="..\src\imgui\imstb_truetype.h" />
+    <ClInclude Include="..\src\Light.h" />
     <ClInclude Include="..\src\Mesh.h" />
     <ClInclude Include="..\src\Shader.h" />
     <ClInclude Include="..\src\stb\stb_image.h" />

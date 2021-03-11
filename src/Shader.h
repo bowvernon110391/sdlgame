@@ -30,6 +30,10 @@ public:
             glDeleteProgram(programId);
     }
 
+    // state preparation
+    virtual void setUniformLocs() {}
+    virtual void prepareState() {}
+
     // bind program
     void use() {
         glUseProgram(programId);
@@ -229,6 +233,43 @@ public:
 
         // success. make shader
         return new Shader(progId);
+    }
+
+    // load from file
+    bool loadFromFile(const char* vsFilename, const char* fsFilename) {
+        using namespace Helper;
+
+        size_t vsLen;
+        char* vs = readFileContent(vsFilename, &vsLen);
+
+        if (!vs) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error loading vertex shader source: %s", vsFilename);
+            return false;
+        }
+        // realloc
+        vs = (char*)realloc(vs, vsLen + 1);
+        vs[vsLen++] = 0;
+
+        size_t fsLen;
+        char* fs = readFileContent(fsFilename, &fsLen);
+
+        if (!fs) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error loading fragment shader source: %s", fsFilename);
+            delete[] vs;
+
+            return false;
+        }
+        // realloc
+        fs = (char*)realloc(fs, fsLen + 1);
+        fs[fsLen++] = 0;
+
+        // compile
+        bool result = Shader::compileShader(vs, fs, vsLen, fsLen, &this->programId);
+
+        //cleanup
+        delete[] vs;
+        delete[] fs;
+        return result;
     }
 
     // create shader based on filename?
