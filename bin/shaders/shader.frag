@@ -18,12 +18,11 @@ varying vec3 vLightdir;	// lightpos - pos in viewspace not normalized
 vec4 computeFinalColor(vec4 col, vec3 normal, vec3 lightdir, PointLight l) {
 	float d = length(lightdir);
 	lightdir = normalize(lightdir);
-	
-	float diffuse = max(0, dot(normal, lightdir));
+	float diffuse = max(0.0, dot(normal, lightdir));
 	
 	// compute attenuation
 	float r = l.radAttenInfluence.r;
-	float denom = max((r-d)/r, 0);
+	float denom = max((r-d)/r, 0.0);
 	// denom = denom * denom;
 	
 	vec4 diffuseColor = vec4(l.color * (diffuse * denom), 1.0);

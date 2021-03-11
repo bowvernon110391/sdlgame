@@ -18,8 +18,7 @@ varying vec3 vLightdir[MAX_LIGHTS];
 vec3 computeDiffuseColor(vec3 lightdir, vec3 normal, vec3 lightcolor, vec3 attenuation) {
 	float dist = length(lightdir);
 	vec3 normLightdir = normalize(lightdir);
-	
-	float dp = max(0, dot(normLightdir, normal));
+	float dp = max(0.0, dot(normLightdir, normal));
 	float atten = 1.0 / (attenuation.r + dist * attenuation.g + dist * dist * attenuation.b);
 	
 	return lightcolor * (dp * atten);
