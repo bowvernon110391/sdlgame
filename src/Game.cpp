@@ -25,15 +25,90 @@
 #include "DebugLightShader.h"
 #include "BoxShader.h"
 
+#include "btBulletDynamicsCommon.h"
+
 using std::vector;
 
 static vector<Light> lights;
 static GShader::DebugLightShader* lightShader;
 static GShader::BoxShader* boxShader;
+static bool dragStart = false;
+
+static int dragPos[2] = {};
+static int lastDragPos[2] = {};
+
+// physical world?
+btDynamicsWorld* world;
+btBroadphaseInterface* broadphase;
+btCollisionConfiguration* collisionConfig;
+btCollisionDispatcher* collisionDispatch;
+btConstraintSolver* solver;
+
+btAlignedObjectArray<btCollisionShape*> colShapes;
+btAlignedObjectArray<btRigidBody*> bodies;
+
+static bool initPhysicsWorld() {
+	srand(time(0));
+
+	colShapes.clear();
+	bodies.clear();
+	// set gravity
+	world->setGravity(btVector3(0, -10, 0));
+
+	// create big box
+	btCollisionShape* groundShape = new btBoxShape(btVector3(2.5f, .25f, 2.5f));
+	colShapes.push_back(groundShape);
+
+	btTransform groundTransform;
+	groundTransform.setIdentity();
+	groundTransform.setOrigin(btVector3(0, 0, 0));
+
+	btScalar mass(0.f);
+	btVector3 localInertia(0, 0, 0);
+	btMotionState* motionState = new btDefaultMotionState(groundTransform);
+	btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motionState, groundShape, localInertia);
+	btRigidBody* b = new btRigidBody(rbInfo);
+
+	world->addRigidBody(b);
+	bodies.push_back(b);
+
+	// add several bodies
+	{
+		btCollisionShape* boxShape = new btBoxShape(btVector3(.5f, .5f, .5f));
+		colShapes.push_back(boxShape);
+
+		btTransform boxTransform;
+		btScalar mass(1.0f);
+		
+		for (int i = 0; i < 30; i++) {
+			boxTransform.setIdentity();
+			boxTransform.setOrigin(btVector3(glm::linearRand(-1.0f, 1.0f), 4.f + i*1.1f, glm::linearRand(-1.0f, 1.0f)));
+			btMotionState* motion = new btDefaultMotionState(boxTransform);
+			btVector3 localInertia;
+			boxShape->calculateLocalInertia(mass, localInertia);
+			btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motion, boxShape, localInertia);
+
+			btRigidBody* b = new btRigidBody(rbInfo);
+			world->addRigidBody(b);
+			bodies.push_back(b);
+		}
+	}
+
+	return true;
+}
+
+static void destroyPhysicsData() {
+	for (int i = 0; i < colShapes.size(); i++) {
+		delete colShapes[i];
+	}
+	colShapes.clear();
+	bodies.clear();
+}
 
 Game::Game():
 App(40, "Game Test"),
 speed(0.f), 
+lightSpeed(0.4f),
 angle(0.0f),
 animate(true),
 perspectiveFOV(55.0f),
@@ -57,6 +132,16 @@ void Game::onInit() {
     SDL_Log("Vendor : %s", glGetString(GL_VENDOR));
     SDL_Log("Version : %s", glGetString(GL_VERSION));
     SDL_Log("GLSL Ver : %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+	// checking precision
+	if (glGetShaderPrecisionFormat) {
+		GLint range[2], precision;
+		glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER, GL_MEDIUM_FLOAT, range, &precision);
+		SDL_Log("MEDIUMP: precision(%d), range(%d to %d)", precision, range[0], range[1]);
+
+		glGetShaderPrecisionFormat(GL_FRAGMENT_SHADER, GL_LOW_FLOAT, range, &precision);
+		SDL_Log("LOWP: precision(%d), range(%d to %d)", precision, range[0], range[1]);
+	}
 
 	view = glm::lookAt(glm::vec3(2, 5, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
@@ -147,15 +232,17 @@ void Game::onInit() {
 	boxShader->ambientColor = glm::vec3(0.12f, 0.1f, 0.25f);
 
 	// add one light?
+	lights.clear();
+
 	Light l;
-	l.pos = glm::vec3(0.5f, 2.5f, 0.1f);
+	l.pos = glm::vec3(-1.5f, 5.5f, 21.1f);
 	l.color = glm::vec3(1.f, .82f, .293f);
-	l.attenuation = glm::vec3(0.52f, 0.0015f, 0.125f);
+	l.attenuation = glm::vec3(1.f, 0.0015f, 0.00125f);
 	lights.push_back(l);
 
-	l.pos = glm::vec3(2.0f, 1.0f, -1.2f);
-	l.color = glm::vec3(.8f, .1f, .97f);
-	l.attenuation = glm::vec3(0.84f, .001f, .125f);
+	l.pos = glm::vec3(22.0f, 7.0f, -1.2f);
+	l.color = glm::vec3(.8f, .41f, .97f);
+	l.attenuation = glm::vec3(1.f, .001f, .0015f);
 	lights.push_back(l);
 
 	tex = Texture2D::loadFromFile("textures/crate.jpg");
@@ -186,6 +273,15 @@ void Game::onInit() {
 
 	// init imgui
 	initImGui();
+
+	// init physics
+	collisionConfig = new btDefaultCollisionConfiguration();
+	collisionDispatch = new btCollisionDispatcher(collisionConfig);
+	broadphase = new btDbvtBroadphase();
+	solver = new btSequentialImpulseConstraintSolver();
+	world = new btDiscreteDynamicsWorld(collisionDispatch, broadphase, solver, collisionConfig);
+
+	initPhysicsWorld();
 }
 
 void Game::onDestroy() {
@@ -199,6 +295,15 @@ void Game::onDestroy() {
 
 	// cleanup imgui
 	destroyImGui();
+
+	// destroy physics
+	delete world;
+	delete solver;
+	delete broadphase;
+	delete collisionDispatch;
+	delete collisionConfig;
+
+	destroyPhysicsData();
 }
 
 static glm::vec3 findDominantAxis(const glm::vec3 axis) {
@@ -222,19 +327,70 @@ void Game::onUpdate(float dt) {
 		// update angle
 		angle += speed * dt;
 
-		// rotate light along y axis
-		float rotation = speed * dt;
-
 		for (int i = 0; i < lights.size(); i++) {
 			Light& l = lights[i];
 
-			glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), rotation, findDominantAxis(l.pos));
+			float rotation = lightSpeed * l.pos.length() * dt;
+
+			glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), rotation, glm::vec3(0,1,0));
 
 			glm::vec4 newPos = glm::vec4(l.pos.x, l.pos.y, l.pos.z, 1.0f);
 			newPos = rotate * newPos;
 
 			l.pos = glm::vec3(newPos.x, newPos.y, newPos.z);
 		}
+
+		// step physics
+		world->stepSimulation(dt, 10);
+
+		// reset position if it's over the limit
+		for (int j = 0; j < world->getNumCollisionObjects(); j++) {
+			btCollisionObject* colObj = world->getCollisionObjectArray()[j];
+			btRigidBody* b = btRigidBody::upcast(colObj);
+
+			btTransform trans;
+			b->getMotionState()->getWorldTransform(trans);
+
+			btVector3 pos = trans.getOrigin();
+
+			if (pos.y() < -10.0f) {
+				// reset position
+				btVector3 newPos(
+					btClamped<float>(pos.x(), -1.0f, 1.0f),
+					10.0f,
+					btClamped<float>(pos.z(), -1.0f, 1.0f)
+				);
+
+				btVector3 vel = b->getLinearVelocity();
+				vel.setX(0);
+				vel.setZ(0);
+
+				trans.setOrigin(newPos);
+				b->clearForces();
+				b->clearGravity();
+				b->setLinearVelocity(vel);
+				b->setWorldTransform(trans);
+			}
+		}
+	}
+
+	// handle rotation
+	if (dragStart) {
+		// rotate camera matrix in its local x and y
+		float yRot = dragPos[1] - lastDragPos[1];
+		float xRot = dragPos[0] - lastDragPos[0];
+
+		// snap last drag to current
+		lastDragPos[0] = dragPos[0];
+		lastDragPos[1] = dragPos[1];
+
+		// do the heavy computation
+		glm::vec3 yAxis = glm::vec3(glm::transpose(view) * glm::vec4(0, 1, 0, 0));
+		glm::vec3 xAxis = glm::vec3(glm::transpose(view) * glm::vec4(1, 0, 0, 0));
+
+		// rotate it along yAxis for xRot
+		view = glm::rotate(view, glm::radians(xRot), yAxis);
+		view = glm::rotate(view, glm::radians(yRot), xAxis);
 	}
 }
 
@@ -246,13 +402,6 @@ void Game::onRender(float dt) {
 
 	computeProjection();
     
-    float sA = sin(newAngle);
-    float cA = cos(newAngle);
-    float aA = ((sA + cA) * .5f);
-
-	glm::vec3 axis = glm::vec3(sA, cA, aA);
-	
-	model = glm::rotate(glm::mat4(1.0f), newAngle, axis);
     // do render here
     glViewport(0, 0, iWidth, iHeight);
     //glClearColor(sA, cA, aA, 1.0f);
@@ -265,9 +414,6 @@ void Game::onRender(float dt) {
 	
 	glUniform1f(simple->getUniformLocation(0), newAngle);*/
 
-	glm::mat4 modelView = view * model;
-	glm::mat4 mvp = proj * modelView;
-
 
 	/*glUniformMatrix4fv(simple->getUniformLocation(MAT_MODELVIEW_UNIFORM_LOC), 1, GL_FALSE, glm::value_ptr(modelView));
 	glUniformMatrix4fv(simple->getUniformLocation(MAT_MVP_UNIFORM_LOC), 1, GL_FALSE, glm::value_ptr(mvp));*/
@@ -275,7 +421,6 @@ void Game::onRender(float dt) {
 	glUniformMatrix4fv(simple->getUniformLocation(3), 1, GL_FALSE, glm::value_ptr(model));*/
 	//glUniformMatrix3fv(simple->getUniformLocation(MAT_NORMAL_UNIFORM_LOC), 1, GL_FALSE, glm::value_ptr(normalMatrix));
 
-	glm::vec3 scale = glm::vec3(3.5f, .25f, 3.2f);
 	//glUniform3fv(simple->getUniformLocation(SCALE_UNIFORM_LOC), 1, glm::value_ptr(scale));
 
 	// use texture
@@ -286,10 +431,12 @@ void Game::onRender(float dt) {
 	tex->use();*/
 	//glDisable(GL_TEXTURE_2D);
 
+	// set ambient to bg color?
+
 	// setup box shader
 	boxShader->prepareState();
 	boxShader->use();
-	boxShader->setTransformData(mvp, modelView, scale);
+	//boxShader->setTransformData(mvp, modelView, scale);
 	boxShader->setAmbientColor();
 	boxShader->setTextureData(tex);
 	
@@ -305,12 +452,44 @@ void Game::onRender(float dt) {
 	glVertexAttribPointer(ATTRIB_NORMAL_LOC, 3, GL_FLOAT, false, cube->strideLength, (void*)12);
 	glVertexAttribPointer(ATTRIB_UV_LOC, 2, GL_FLOAT, false, cube->strideLength, (void*)24);
 
+	// draw each cube
+	for (int j = 0; j < world->getNumCollisionObjects(); j++) {
+		btCollisionObject* colObj = world->getCollisionObjectArray()[j];
+		btRigidBody* b = btRigidBody::upcast(colObj);
+		btTransform trans;
+		b->getMotionState()->getWorldTransform(trans);
+		
+		btScalar m[16];
 
-	for (int i=0; i<cube->subMeshes.size(); i++) {
-		Mesh::SubMesh &s = cube->subMeshes[i];
+		trans.getOpenGLMatrix(m);
+		glm::mat4 model = glm::make_mat4(m);
+		glm::mat4 modelView = view * model;
+		glm::mat4 mvp = proj * modelView;
 
-		glDrawElements(GL_TRIANGLES, s.elemCount, GL_UNSIGNED_SHORT, (void*)s.idxBegin);
+		/*SDL_Log("=======================");
+		SDL_Log("Object %d", j);
+		float *md = glm::value_ptr(model);
+		for (int c = 0; c < 4; c++) {
+			SDL_Log("%.2f %.2f %.2f %.2f", md[c+0], md[c+4], md[c+8], md[c+12]);
+		}*/
+
+		btBoxShape* box = (btBoxShape*)b->getCollisionShape();
+		btVector3 half = box->getHalfExtentsWithMargin();
+
+		glm::vec3 scale(half.x() * 2, half.y() * 2, half.z() * 2);
+
+		// set draw data
+		boxShader->setTransformData(mvp, modelView, scale);
+
+		// draw call
+		for (int i = 0; i < cube->subMeshes.size(); i++) {
+			Mesh::SubMesh& s = cube->subMeshes[i];
+
+			glDrawElements(GL_TRIANGLES, s.elemCount, GL_UNSIGNED_SHORT, (void*)s.idxBegin);
+		}
 	}
+
+	
 
 	// draw lights?
 	// setup shader
@@ -318,13 +497,14 @@ void Game::onRender(float dt) {
 	lightShader->use();
 
 	// setup buffer
+	cube->use();
+	glVertexAttribPointer(ATTRIB_POS_LOC, 3, GL_FLOAT, false, cube->strideLength, (void*)0);
 
+	// draw each light
 	for (int i = 0; i < lights.size(); i++) {
 		const Light& l = lights[i];
 		lightShader->setDrawData(l, view, proj);
 
-		cube->use();
-		glVertexAttribPointer(ATTRIB_POS_LOC, 3, GL_FLOAT, false, cube->strideLength, (void*)0);
 
 		for (int i = 0; i < cube->subMeshes.size(); i++) {
 			Mesh::SubMesh& s = cube->subMeshes[i];
@@ -379,6 +559,7 @@ void Game::onRender(float dt) {
 	ImGui::Begin("App Config", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 	//ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "Render speed: %d FPS", fps);
 	ImGui::SliderFloat("Cube Speed", &speed, 0.0f, 10.0f, "%.2f");
+	ImGui::SliderFloat("Light Speed", &lightSpeed, 0.0f, 2.0f, "%.2f");
 	ImGui::Checkbox("Animate?", &animate);
 	ImGui::Checkbox("Change Bg Col", &showColorPicker);
 
@@ -411,6 +592,8 @@ void Game::onRender(float dt) {
 	if (showColorPicker) {
 		ImGui::Begin("Change BG Color", &showColorPicker, ImGuiWindowFlags_AlwaysAutoResize);
 		ImGui::ColorPicker4("Bg Color", &bgColor[0]);
+		ImGui::SameLine();
+		ImGui::ColorPicker3("Ambient", glm::value_ptr(boxShader->ambientColor));
 		ImGui::End();
 	}
 
@@ -425,10 +608,11 @@ void Game::onRender(float dt) {
 
 /* handle event */
 void Game::onEvent(SDL_Event *e) {
-	SDL_SetHint(SDL_HINT_IME_INTERNAL_EDITING, "0");
 	// override imgui sdl event processing
-	if (!ImGui_ImplBowie_ProcessEvent(e))
-		ImGui_ImplSDL2_ProcessEvent(e);
+	bool canHandleInput = true;
+	if (!ImGui_ImplBowie_ProcessEvent(e)) {
+		canHandleInput = !ImGui_ImplSDL2_ProcessEvent(e);
+	}
 
 	ImGuiIO& io = ImGui::GetIO();
 	
@@ -453,6 +637,25 @@ void Game::onEvent(SDL_Event *e) {
 			SDL_Log("Window resized to: (%d x %d)", this->iWidth, this->iHeight);
 
 			computeProjection();
+		}
+	}
+	else if (!io.WantCaptureMouse) {
+		if (e->type == SDL_MOUSEBUTTONDOWN) {
+			if (e->button.button == SDL_BUTTON_LEFT) {
+				dragStart = true;
+
+				lastDragPos[0] = dragPos[0] = e->button.x;
+				lastDragPos[1] = dragPos[1] = e->button.y;
+			}
+		}
+
+		if (e->type == SDL_MOUSEBUTTONUP) {
+			dragStart = false;
+		}
+
+		if (e->type == SDL_MOUSEMOTION && dragStart) {
+			dragPos[0] = e->motion.x;
+			dragPos[1] = e->motion.y;
 		}
 	}
 }

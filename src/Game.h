@@ -15,7 +15,7 @@ class Game : public App
 {
 private:
     float angle;
-    float speed;
+    float speed, lightSpeed;
     bool animate;
     float bgColor[4];
 
