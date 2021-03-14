@@ -22,7 +22,8 @@ protected:
 
     std::vector<int> uniformLoc;
 public:
-    Shader(int progId = 0): programId(progId) {
+
+    Shader(int progId = 0) : programId(progId) {
     }
 
     virtual ~Shader() {
@@ -141,21 +142,21 @@ public:
     // compile shader from source inputs
     static bool compileShader(const char* vs, const char* fs, int vsLen, int fsLen, int *shaderId) {
         if (!shaderId) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Compiling shader without program Id (iot)");
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "(!) Compiling shader without program Id (iot)");
             return false;
         }
 
         int vsId = compileShader(GL_VERTEX_SHADER, vs, vsLen);
 
         if (!vsId) {
-			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed Compiling Vertex Shader!");
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "(!) Failed Compiling Vertex Shader!");
             return false;
         }
 
         int fsId = compileShader(GL_FRAGMENT_SHADER, fs, fsLen);
 
         if (!fsId) {
-			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed Compiling Fragment Shader!");
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "(!) Failed Compiling Fragment Shader!");
             return false;
         }
 
@@ -189,14 +190,12 @@ public:
                 char *infoLog = new char[infoLen];
 
                 glGetProgramInfoLog(progId, infoLen, NULL, infoLog);
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Program linking failed: %s", infoLog);
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "(!) Program linking failed: %s", infoLog);
 
                 delete [] infoLog;
             }
 
             glDeleteProgram(progId);
-
-			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed linking shader! unknow reason");
             return false;
         }
 
@@ -264,7 +263,12 @@ public:
         fs[fsLen++] = 0;
 
         // compile
+        SDL_Log("Compiling... %s - %s", vsFilename, fsFilename);
         bool result = Shader::compileShader(vs, fs, vsLen, fsLen, &this->programId);
+
+        if (result) {
+            SDL_Log("Compiled: %s - %s", vsFilename, fsFilename);
+        }
 
         //cleanup
         delete[] vs;

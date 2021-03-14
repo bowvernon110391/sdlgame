@@ -2,7 +2,13 @@
 
 App::App(int tickRate, const char* title, int w, int h):
 bRun(true), iWidth(w), iHeight(h), szTitle(title), fps(0) {
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER | SDL_INIT_JOYSTICK);
+    SDL_Init(
+        SDL_INIT_VIDEO 
+        | SDL_INIT_GAMECONTROLLER 
+        | SDL_INIT_TIMER 
+        | SDL_INIT_JOYSTICK
+        | SDL_INIT_SENSOR
+    );
     
     setTickRate(tickRate);
     createWindow();
@@ -17,6 +23,36 @@ void App::createWindow() {
     const string platformName = string(SDL_GetPlatform());
 
     SDL_Log("Detected platform: %s", platformName.c_str());
+
+    int numSensor = SDL_NumSensors();
+    SDL_Log("Detected sensors: %d", numSensor);
+
+    for (int s = 0; s < numSensor; s++) {
+        SDL_SensorID sId = SDL_SensorGetDeviceInstanceID(s);
+        const char* sName = SDL_SensorGetDeviceName(s);
+        SDL_SensorType sType = SDL_SensorGetDeviceType(s);
+
+        char devTypeName[32];
+
+        switch (sType) {
+        case SDL_SENSOR_INVALID:
+            sprintf(devTypeName, "INVALID");
+            break;
+        case SDL_SENSOR_UNKNOWN:
+            sprintf(devTypeName, "UNKNOWN");
+            break;
+        case SDL_SENSOR_ACCEL:
+            sprintf(devTypeName, "ACCELEROMETER");
+            break;
+        case SDL_SENSOR_GYRO:
+            sprintf(devTypeName, "GYROSCOPE");
+            break;
+        }
+
+        SDL_Log("Sensor[%d]: ID(%d), name(%s), type(%s)",
+            s, sId, sName, devTypeName
+            );
+    }
 
     bUseGLES = false;
 
@@ -60,6 +96,9 @@ void App::createWindow() {
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
+    // set hint
+    SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeRight");
 
     // create the window
     wndApp = SDL_CreateWindow(szTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,

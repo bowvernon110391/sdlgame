@@ -25,7 +25,6 @@ private:
 
     glm::mat4 proj, view, model;
 
-    Shader *simple;
     Mesh *cube;
     Texture2D* tex;
 public:
@@ -40,6 +39,7 @@ public:
 
 private:
     void computeProjection();
+    void computeCameraMatrix();
     void initImGui();
     void destroyImGui();
     void beginRenderImGui();

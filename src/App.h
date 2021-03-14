@@ -13,18 +13,22 @@ class App
 private:
     /* data */
     bool bRun, bUseGLES;  // is it running? 
-    int iTickRate;
 
     void pollEvent();
 protected:
     void setRunFlag(bool running) { bRun = running; }
     void setTickRate(int rate) { iTickRate = rate < 10 ? 10 : rate > 240 ? 240 : rate; }
 
+    SDL_DisplayOrientation getScreenOrientation() {
+        return SDL_GetDisplayOrientation(SDL_GetWindowDisplayIndex(wndApp));
+    }
+
     void createWindow();
 
     SDL_Window *wndApp;
     int iWidth, iHeight;
     string szTitle;
+    int iTickRate;
 
     int fps;
 

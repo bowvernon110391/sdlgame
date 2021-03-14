@@ -34,8 +34,22 @@ static GShader::DebugLightShader* lightShader;
 static GShader::BoxShader* boxShader;
 static bool dragStart = false;
 
+static bool renderInterpolation = true;
+
 static int dragPos[2] = {};
 static int lastDragPos[2] = {};
+static float camRotHorz, camRotVert;
+static float camRateHorz = 0.01f, camRateVert = 0.005f;
+static float camDist;
+
+static int accelId=-1, gyroId=-1;
+static float accelerometer[6] = {};
+static float gyro[6] = {};
+SDL_Sensor* accelSensor = NULL, * gyroSensor = NULL;
+
+static bool followTilt = false;
+static bool camUseTilt = false;
+static float tiltAngle;
 
 // physical world?
 btDynamicsWorld* world;
@@ -47,13 +61,107 @@ btConstraintSolver* solver;
 btAlignedObjectArray<btCollisionShape*> colShapes;
 btAlignedObjectArray<btRigidBody*> bodies;
 
-static bool initPhysicsWorld() {
+btRigidBody* ground = NULL;
+
+void initSensors() {
+	// init all data
+	accelId = -1;
+	gyroId = -1;
+	memset(&accelerometer[0], 0, sizeof(accelerometer));
+	memset(&gyro[0], 0, sizeof(gyro));
+	accelSensor = gyroSensor = NULL;
+	
+	int numSensors = SDL_NumSensors();
+
+	for (int i = 0; i < numSensors; i++) {
+		SDL_SensorType type = SDL_SensorGetDeviceType(i);
+		if (type == SDL_SENSOR_ACCEL && accelId < 0) {
+			accelId = SDL_SensorGetDeviceInstanceID(i);
+
+			accelSensor = SDL_SensorOpen(i);
+		}
+
+		if (type == SDL_SENSOR_GYRO && gyroId < 0) {
+			gyroId = SDL_SensorGetDeviceInstanceID(i);
+
+			gyroSensor = SDL_SensorOpen(i);
+		}
+	}
+}
+
+void destroySensors() {
+	if (accelSensor) {
+		SDL_SensorClose(accelSensor);
+	}
+
+	if (gyroSensor) {
+		SDL_SensorClose(gyroSensor);
+	}
+
+	SDL_QuitSubSystem(SDL_INIT_SENSOR);
+}
+
+void pollSensors() {
+	SDL_SensorUpdate();
+
+	/*if (accelSensor) {
+		if (SDL_SensorGetData(accelSensor, accelerometer, 6) < 0)
+			SDL_LogError(SDL_LOG_CATEGORY_INPUT, "Accelerometer error %s", SDL_GetError());
+		else
+			SDL_Log("Accelerometer polled!");
+	}
+
+	if (gyroSensor) {
+		if (SDL_SensorGetData(gyroSensor, gyro, 6) < 0)
+			SDL_LogError(SDL_LOG_CATEGORY_INPUT, "Gyroscope error %s", SDL_GetError());
+		else
+			SDL_Log("Gyroscope polled!");
+	}*/
+}
+
+void groundPreTick(btDynamicsWorld* wrld, btScalar dt) {
+	btRigidBody* groundObj = (btRigidBody*)wrld->getWorldUserInfo();
+	if (groundObj) {
+		//SDL_Log("Do something with the kinematic here! %.2f", dt);
+
+		// integrate some shit
+		btVector3 linvel(0, 0, 0);
+		float rotSpeed = 0.5;
+		btVector3 angvel(0, rotSpeed, 0);
+
+		btTransform target, current;
+
+		// grab current, and predict target
+		groundObj->getMotionState()->getWorldTransform(current);
+		//current = groundObj->getWorldTransform();
+		// compute target
+		//btTransformUtil::integrateTransform(current, linvel, angvel, dt, target);
+		// set it
+		//groundObj->getMotionState()->setWorldTransform(target);
+
+		// compute real shit
+		// compute the tilted box direction?
+		float cosVert = glm::cos(camRotVert);
+		float sinVert = glm::sin(camRotVert);
+		btVector3 axis(
+			glm::sin(camRotHorz) * cosVert,
+			sinVert,
+			glm::cos(camRotHorz) * cosVert
+		);
+
+		btQuaternion qRot(axis, btRadians(-tiltAngle));
+		current.setRotation(qRot);
+		ground->getMotionState()->setWorldTransform(current);
+	}
+}
+
+bool initPhysicsWorld() {
 	srand(time(0));
 
 	colShapes.clear();
 	bodies.clear();
 	// set gravity
-	world->setGravity(btVector3(0, -10, 0));
+	world->setGravity(btVector3(0, -9.8, 0));
 
 	// create big box
 	btCollisionShape* groundShape = new btBoxShape(btVector3(2.5f, .25f, 2.5f));
@@ -69,8 +177,24 @@ static bool initPhysicsWorld() {
 	btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motionState, groundShape, localInertia);
 	btRigidBody* b = new btRigidBody(rbInfo);
 
+	b->setUserIndex(-1);
+	b->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
+	b->forceActivationState(DISABLE_DEACTIVATION);
+
+	if (b->isStaticObject()) {
+		SDL_Log("Added as STATIC");
+	}
+	else {
+		SDL_Log("Added as NON-STATIC");
+	}
+	b->setAngularVelocity(btVector3(200, 100, 300));
+	b->setFriction(0.4f);
 	world->addRigidBody(b);
 	bodies.push_back(b);
+
+	ground = b;
+
+	world->setInternalTickCallback(groundPreTick, ground, true);
 
 	// add several bodies
 	{
@@ -80,7 +204,7 @@ static bool initPhysicsWorld() {
 		btTransform boxTransform;
 		btScalar mass(1.0f);
 		
-		for (int i = 0; i < 30; i++) {
+		for (int i = 0; i < 15; i++) {
 			boxTransform.setIdentity();
 			boxTransform.setOrigin(btVector3(glm::linearRand(-1.0f, 1.0f), 4.f + i*1.1f, glm::linearRand(-1.0f, 1.0f)));
 			btMotionState* motion = new btDefaultMotionState(boxTransform);
@@ -89,6 +213,7 @@ static bool initPhysicsWorld() {
 			btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motion, boxShape, localInertia);
 
 			btRigidBody* b = new btRigidBody(rbInfo);
+			b->setFriction(glm::gaussRand(0.6f, 0.4f));
 			world->addRigidBody(b);
 			bodies.push_back(b);
 		}
@@ -97,7 +222,7 @@ static bool initPhysicsWorld() {
 	return true;
 }
 
-static void destroyPhysicsData() {
+void destroyPhysicsData() {
 	for (int i = 0; i < colShapes.size(); i++) {
 		delete colShapes[i];
 	}
@@ -108,15 +233,14 @@ static void destroyPhysicsData() {
 Game::Game():
 App(40, "Game Test"),
 speed(0.f), 
-lightSpeed(0.4f),
+lightSpeed(0.1f),
 angle(0.0f),
 animate(true),
-perspectiveFOV(55.0f),
+perspectiveFOV(57.0f),
 orthoRange(10.0f),
 projectionType(PROJECTION_PERSPECTIVE)
 {
     cube = nullptr;
-	simple = nullptr;
 	
 	bgColor[0] = .2f;
 	bgColor[1] = .5f;
@@ -128,6 +252,18 @@ Game::~Game() {
 }
 
 void Game::onInit() {
+	// setup camera
+	camRotHorz = 0.0f;
+	camRotVert = glm::radians(45.0f);
+	camDist = 10.0f;
+
+	// follow tilt is false
+	followTilt = false;
+	tiltAngle = 0.0f;	// relative to view position ofc
+
+	// init sensor
+	initSensors();
+
     SDL_Log("Renderer : %s", glGetString(GL_RENDERER));
     SDL_Log("Vendor : %s", glGetString(GL_VENDOR));
     SDL_Log("Version : %s", glGetString(GL_VERSION));
@@ -143,7 +279,7 @@ void Game::onInit() {
 		SDL_Log("LOWP: precision(%d), range(%d to %d)", precision, range[0], range[1]);
 	}
 
-	view = glm::lookAt(glm::vec3(2, 5, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+	view = glm::lookAt(glm::vec3(0, 0, 10), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
 	model = glm::mat4(1.0f);
 
@@ -182,40 +318,6 @@ void Game::onInit() {
 		if (cube->createBufferObjects()) {
 			SDL_Log("Buffer ids: %u %u", cube->vbo, cube->ibo);
 		}
-	}
-
-	simple = Shader::loadShaderFromFile("shaders/shader.vert", "shaders/shader.frag");
-
-	SDL_assert(simple != NULL);
-
-	if (simple) {
-		/*simple->pushUniformLocation("matProj", 0);
-		simple->pushUniformLocation("matView", 1);
-		simple->pushUniformLocation("matModel", 2);
-
-		simple->pushUniformLocation("tex0", 3);*/
-
-		simple->pushUniformLocation("time", TIME_UNIFORM_LOC);
-		simple->pushUniformLocation("matModelview", MAT_MODELVIEW_UNIFORM_LOC);
-		simple->pushUniformLocation("matMVP", MAT_MVP_UNIFORM_LOC);
-		/*simple->pushUniformLocation("matView", 2);
-		simple->pushUniformLocation("matModel", 3);*/
-		simple->pushUniformLocation("tex0", TEXTURE0_UNIFORM_LOC);
-
-		simple->pushUniformLocation("scale", SCALE_UNIFORM_LOC);
-		simple->pushUniformLocation("matNormal", MAT_NORMAL_UNIFORM_LOC);
-
-		SDL_Log("Light uniform loc: %d %d %d", 
-			simple->getUniformLocation("point.pos"),
-			simple->getUniformLocation("point.color"),
-			simple->getUniformLocation("point.radAttenInfluence")
-			);
-
-		// position it somewhere above?
-		simple->use();
-		glUniform3f(simple->getUniformLocation("point.pos"), -10.f, 5.f, 1.5f);
-		glUniform3f(simple->getUniformLocation("point.color"), 1.f, .85f, .92f);
-		glUniform3f(simple->getUniformLocation("point.radAttenInfluence"), 55.f, .1f, .2f);
 	}
 
 	// load debug light shader
@@ -288,7 +390,6 @@ void Game::onDestroy() {
     // do clean up here rather than at destructor
     // if (simple) delete simple;
 	if (cube) delete cube;
-	if (simple) delete simple;
 	if (tex) delete tex;
 	if (lightShader) delete lightShader;
 	if (boxShader) delete boxShader;
@@ -304,25 +405,44 @@ void Game::onDestroy() {
 	delete collisionConfig;
 
 	destroyPhysicsData();
+
+	destroySensors();
 }
 
-static glm::vec3 findDominantAxis(const glm::vec3 axis) {
-	float ax = fabs(axis.x);
-	float ay = fabs(axis.y);
-	float az = fabs(axis.z);
+static void updateTilt(SDL_DisplayOrientation ori) {
+	tiltAngle = 0.0f;
+	if (!accelSensor) {
+		followTilt = false;
+	}
+	else if (followTilt) {
+		// do computation?
+		glm::vec3 accelDir(accelerometer[0], accelerometer[1], accelerometer[2]);
 
-	if (ax < ay && ax < az) {
-		return glm::vec3(1, 0, 0);
-	}
-	else if (ay < ax && ay < az) {
-		return glm::vec3(0, 1, 0);
-	}
-	else {
-		return glm::vec3(0, 0, 1);
+		// rotate if necessary
+		if (ori == SDL_ORIENTATION_LANDSCAPE) {
+			SDL_Log("LANDSCAPE RIGHT!");
+			// -90 degree rotate
+			float tmp = accelDir.x;
+			accelDir.x = accelDir.y;
+			accelDir.y = -tmp;
+		}
+		else if (ori == SDL_ORIENTATION_LANDSCAPE_FLIPPED) {
+			// 90 degree rotate
+			SDL_Log("LANDSCAPE LEFT!");
+			float tmp = accelDir.x;
+			accelDir.x = -accelDir.y;
+			accelDir.y = tmp;
+		}
+
+		SDL_Log("upVector: %.2f %.2f", accelDir.x, -accelDir.y);
+        tiltAngle = glm::degrees(glm::atan(accelDir.x, -accelDir.y));
 	}
 }
 
 void Game::onUpdate(float dt) {
+	pollSensors();
+	updateTilt(getScreenOrientation());
+
 	if (animate) {
 		// update angle
 		angle += speed * dt;
@@ -339,9 +459,8 @@ void Game::onUpdate(float dt) {
 
 			l.pos = glm::vec3(newPos.x, newPos.y, newPos.z);
 		}
-
-		// step physics
-		world->stepSimulation(dt, 10);
+		
+		world->stepSimulation(dt, 0, dt);
 
 		// reset position if it's over the limit
 		for (int j = 0; j < world->getNumCollisionObjects(); j++) {
@@ -369,6 +488,7 @@ void Game::onUpdate(float dt) {
 				b->clearForces();
 				b->clearGravity();
 				b->setLinearVelocity(vel);
+				//b->setAngularVelocity(btVector3(3, 10, 2));
 				b->setWorldTransform(trans);
 			}
 		}
@@ -385,22 +505,54 @@ void Game::onUpdate(float dt) {
 		lastDragPos[1] = dragPos[1];
 
 		// do the heavy computation
-		glm::vec3 yAxis = glm::vec3(glm::transpose(view) * glm::vec4(0, 1, 0, 0));
-		glm::vec3 xAxis = glm::vec3(glm::transpose(view) * glm::vec4(1, 0, 0, 0));
+		//glm::vec3 yAxis = glm::vec3(glm::transpose(view) * glm::vec4(0, 1, 0, 0));
+		//glm::vec3 xAxis = glm::vec3(glm::transpose(view) * glm::vec4(1, 0, 0, 0));
 
-		// rotate it along yAxis for xRot
-		view = glm::rotate(view, glm::radians(xRot), yAxis);
-		view = glm::rotate(view, glm::radians(yRot), xAxis);
+		//// rotate it along yAxis for xRot
+		//view = glm::rotate(view, glm::radians(xRot), yAxis);
+		//view = glm::rotate(view, glm::radians(yRot), xAxis);
+		camRotHorz += -xRot * camRateHorz;
+		camRotVert += yRot * camRateVert;
+
+		// clamp vertical rotation
+		const float half_pi = 3.14f * 0.5f;
+		camRotVert = glm::fclamp(camRotVert, -half_pi, half_pi);
+	}
+}
+
+void Game::computeCameraMatrix() {
+	// update view
+	float cx, cy, cz;
+	
+	cy = glm::sin(camRotVert) * camDist;
+
+	float scaleHorz = glm::cos(camRotVert);
+	cz = glm::cos(camRotHorz) * scaleHorz * camDist;
+	cx = glm::sin(camRotHorz) * scaleHorz * camDist;
+
+	view = glm::lookAt(glm::vec3(cx, cy, cz), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+
+	// let's tilt
+	if (camUseTilt) {
+		// compute rotation matrix
+		glm::mat4 camZrot = glm::rotate(glm::mat4(1.0f), glm::radians(tiltAngle), glm::vec3(0, 0, 1));
+		view = camZrot * view;
 	}
 }
 
 /* Render function */
 void Game::onRender(float dt) {
+	//SDL_Log("render dt: %.4f", dt);
+	// only interpolate if we're not paused
+	if (renderInterpolation && animate)
+		world->stepSimulation(dt, 10, (btScalar)1.0/(btScalar)iTickRate);
+
     float newAngle = angle + speed * dt;
 	if (!animate)
 		newAngle = angle;
 
 	computeProjection();
+	computeCameraMatrix();
     
     // do render here
     glViewport(0, 0, iWidth, iHeight);
@@ -408,30 +560,6 @@ void Game::onRender(float dt) {
 	glClearColor(bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
 	glEnable(GL_DEPTH_TEST);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-
-	// bind shader and set uniforms?
-	/*simple->use();
-	
-	glUniform1f(simple->getUniformLocation(0), newAngle);*/
-
-
-	/*glUniformMatrix4fv(simple->getUniformLocation(MAT_MODELVIEW_UNIFORM_LOC), 1, GL_FALSE, glm::value_ptr(modelView));
-	glUniformMatrix4fv(simple->getUniformLocation(MAT_MVP_UNIFORM_LOC), 1, GL_FALSE, glm::value_ptr(mvp));*/
-	/*glUniformMatrix4fv(simple->getUniformLocation(2), 1, GL_FALSE, glm::value_ptr(view));
-	glUniformMatrix4fv(simple->getUniformLocation(3), 1, GL_FALSE, glm::value_ptr(model));*/
-	//glUniformMatrix3fv(simple->getUniformLocation(MAT_NORMAL_UNIFORM_LOC), 1, GL_FALSE, glm::value_ptr(normalMatrix));
-
-	//glUniform3fv(simple->getUniformLocation(SCALE_UNIFORM_LOC), 1, glm::value_ptr(scale));
-
-	// use texture
-	/*glEnable(GL_TEXTURE_2D);
-	glActiveTexture(GL_TEXTURE0);
-	glUniform1i(simple->getUniformLocation(TEXTURE0_UNIFORM_LOC), 0);
-
-	tex->use();*/
-	//glDisable(GL_TEXTURE_2D);
-
-	// set ambient to bg color?
 
 	// setup box shader
 	boxShader->prepareState();
@@ -531,7 +659,7 @@ void Game::onRender(float dt) {
 	);
 	ImGui::SetWindowPos(ImVec2(0, 0));
 	ImGui::SetWindowSize(ImVec2(iWidth, iHeight));
-	ImGui::TextColored(ImVec4(1, 1, 0, 1), "FPS: %03d", fps);
+	ImGui::TextColored(ImVec4(1, 1, 0, 1), "FPS: %03d, Tilt: %.2f deg", fps, tiltAngle);
 	// check if imgui want text
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.WantTextInput) {
@@ -554,14 +682,32 @@ void Game::onRender(float dt) {
 	else {
 		ImGui::Text("Screen Keyboard hidden");
 	}
+
+	// sensor data?
+	ImGui::TextColored(ImVec4(1, 0, 0, 1), "Accel[%d]: %.2f %.2f %.2f | %.2f %.2f %.2f",
+		accelId, accelerometer[0], accelerometer[1], accelerometer[2],
+		accelerometer[3], accelerometer[4], accelerometer[5]
+	);
+
+	ImGui::TextColored(ImVec4(1, 1, 0, 1), "Gyro[%d]: %.2f %.2f %.2f | %.2f %.2f %.2f",
+		gyroId, gyro[0], gyro[1], gyro[2],
+		gyro[3], gyro[4], gyro[5]
+	);
+
+
 	ImGui::End();
 
 	ImGui::Begin("App Config", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 	//ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "Render speed: %d FPS", fps);
-	ImGui::SliderFloat("Cube Speed", &speed, 0.0f, 10.0f, "%.2f");
 	ImGui::SliderFloat("Light Speed", &lightSpeed, 0.0f, 2.0f, "%.2f");
+	ImGui::SliderFloat("Cam Dist", &camDist, 1.0f, 20.0f, "%.2f m");
 	ImGui::Checkbox("Animate?", &animate);
+	ImGui::Checkbox("Interpolate", &renderInterpolation);
 	ImGui::Checkbox("Change Bg Col", &showColorPicker);
+
+	ImGui::Checkbox("Use tilt", &followTilt);
+	ImGui::SameLine();
+	ImGui::Checkbox("Cam tilt", &camUseTilt);
 
 	// test multiline
 	/*ImGui::Separator();
@@ -634,9 +780,21 @@ void Game::onEvent(SDL_Event *e) {
 			this->iWidth = e->window.data1;
 			this->iHeight = e->window.data2;
 
-			SDL_Log("Window resized to: (%d x %d)", this->iWidth, this->iHeight);
+			int wx, wy;
+			SDL_GetWindowPosition(wndApp, &wx, &wy);
+
+			SDL_Log("Window resized to: (%d x %d) @ pos(%d, %d)", 
+				this->iWidth, this->iHeight,
+				wx, wy
+			);
 
 			computeProjection();
+		}
+		if (e->window.event == SDL_WINDOWEVENT_RESIZED) {
+			SDL_Log("Window resized to %dx%d", e->window.data1, e->window.data2);
+		}
+		if (e->window.event == SDL_WINDOWEVENT_MOVED) {
+			SDL_Log("Window moved to %d, %d", e->window.data1, e->window.data2);
 		}
 	}
 	else if (!io.WantCaptureMouse) {
@@ -656,6 +814,31 @@ void Game::onEvent(SDL_Event *e) {
 		if (e->type == SDL_MOUSEMOTION && dragStart) {
 			dragPos[0] = e->motion.x;
 			dragPos[1] = e->motion.y;
+		}
+	} 
+
+	// handle tilt
+	if (e->type == SDL_SENSORUPDATE) {
+		//SDL_Log("GOT SENSOR EVENT!");
+		SDL_Sensor* sensor = SDL_SensorFromInstanceID(e->sensor.which);
+		float* data = &e->sensor.data[0];
+		Uint32 timestamp = e->sensor.timestamp;
+		
+		if (sensor == accelSensor) {
+			/*SDL_Log("FOR ACCEL @ %d! %.2f %.2f %.2f : %.2f %.2f %.2f", 
+				timestamp,
+				data[0], data[1], data[2], data[3], data[4], data[5]
+				);*/
+			// copy data
+			memcpy(&accelerometer[0], data, sizeof(accelerometer));
+		}
+		else if (sensor == gyroSensor) {
+			/*SDL_Log("FOR GYRO @ %d! %.2f %.2f %.2f : %.2f %.2f %.2f",
+				timestamp,
+				data[0], data[1], data[2], data[3], data[4], data[5]
+			);*/
+			// copy data
+			memcpy(&gyro[0], data, sizeof(gyro));
 		}
 	}
 }
