@@ -10,7 +10,7 @@ public:
 	int width, height;
 	unsigned char* texData;
 	GLint format, minFilter, magFilter, wrapS, wrapT;
-	bool retainPixelData, ownPixelData;
+	bool retainPixelData, ownPixelData, useMipmap;
 
 	Texture2D() {
 		retainPixelData = false;
@@ -24,6 +24,7 @@ public:
 		magFilter = GL_LINEAR;
 		wrapS = GL_CLAMP_TO_EDGE;
 		wrapT = GL_CLAMP_TO_EDGE;
+		useMipmap = false;
 	}
 
 	virtual ~Texture2D() {
@@ -39,36 +40,9 @@ public:
 		return true;
 	}
 
-	virtual void generateMipMap() {}
+	virtual void generateMipMap();
 
-	bool upload(bool retainPixelData = false) {
-		if (width && height) {
-			if (!texId)
-				if (!createHandle())
-					return false;
-
-			// generate rgba by default, don't ask don't tell?
-			glBindTexture(GL_TEXTURE_2D, texId);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
-
-			glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, texData);
-
-			generateMipMap();
-
-			// free texture data
-			if (!retainPixelData && ownPixelData) {
-				delete[] texData;
-				texData = NULL;
-			}
-
-			return true;
-		}
-
-		return false;
-	}
+	bool upload(bool retainPixelData = false);
 
 	void use() {
 		glBindTexture(GL_TEXTURE_2D, texId);
@@ -82,11 +56,11 @@ public:
 
 	static Texture2D* loadFromFile(const char* filename,
 		GLint minFilter = GL_TEXTURE_MIN_FILTER, GLint magFilter = GL_TEXTURE_MAG_FILTER,
-		GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE);
+		GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE, bool useMipmap = false);
 
 	static Texture2D* loadFromMemory(const char* buf, int bufSize,
 		GLint minFilter = GL_TEXTURE_MIN_FILTER, GLint magFilter = GL_TEXTURE_MAG_FILTER,
-		GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE);
+		GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE, bool useMipmap = false);
 };
 
 #endif

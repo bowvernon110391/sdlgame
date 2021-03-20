@@ -110,6 +110,8 @@ bool ImGui_ImplBowie_CreateFontsTexture() {
 		fontTexture->width = w;
 		fontTexture->height = h;
 		fontTexture->texData = pixels;
+		fontTexture->useMipmap = false;
+		fontTexture->minFilter = GL_NEAREST;
 
 		if (!fontTexture->upload()) {
 			SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed creating font texture!");
@@ -158,7 +160,8 @@ static void ImGui_ImplBowie_CreateFontShader() {
 	varying vec2 vTexcoord;\n \
 	\
 	void main() {\n \
-		gl_FragColor = vColor * texture2D(tex0, vTexcoord);\n \
+		vec4 color = texture2D(tex0, vTexcoord); \n \
+		gl_FragColor = vColor * color;\n \
 	}\n \
 	";
 

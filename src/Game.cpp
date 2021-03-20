@@ -347,7 +347,8 @@ void Game::onInit() {
 	l.attenuation = glm::vec3(1.f, .001f, .0015f);
 	lights.push_back(l);
 
-	tex = Texture2D::loadFromFile("textures/crate.jpg");
+	tex = Texture2D::loadFromFile("textures/crate.jpg", GL_LINEAR_MIPMAP_LINEAR,
+		GL_LINEAR, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, true);
 
 	if (!tex) {
 		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Error Loading texture!");
@@ -372,6 +373,9 @@ void Game::onInit() {
 	glEnableVertexAttribArray(ATTRIB_POS_LOC);
 	glEnableVertexAttribArray(ATTRIB_NORMAL_LOC);
 	glEnableVertexAttribArray(ATTRIB_UV_LOC);
+
+	// enable msaa x4
+	glEnable(GL_MULTISAMPLE);
 
 	// init imgui
 	initImGui();
