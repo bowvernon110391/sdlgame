@@ -6,6 +6,9 @@
 Mesh::~Mesh() {
 	if (vbo) glDeleteBuffers(1, &vbo);
 	if (ibo) glDeleteBuffers(1, &ibo);
+
+	if (vertexBuffer) { delete[] vertexBuffer; vertexBuffer = 0; }
+	if (indexBuffer) { delete[] indexBuffer; indexBuffer = 0; }
 }
 
 void Mesh::use() {
@@ -15,7 +18,7 @@ void Mesh::use() {
 
 bool Mesh::createBufferObjects() {
 	// does it make sense?
-	if (!vertBuffer.size() || !idxBuffer.size()) {
+	if (!vertexBuffer || !indexBuffer) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Cannot initialize empty vertex buffer!");
 		return false;
 	}
@@ -29,7 +32,11 @@ bool Mesh::createBufferObjects() {
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, vertBuffer.size() * sizeof(vertBuffer[0]), &vertBuffer[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertexBufferSize, vertexBuffer, GL_STATIC_DRAW);
+
+#ifdef _DEBUG
+	SDL_Log("VB Size: %d bytes at %x", vertexBufferSize, vertexBuffer);
+#endif
 
 	// create ibo next
 	glGenBuffers(1, &ibo);
@@ -42,7 +49,11 @@ bool Mesh::createBufferObjects() {
 	}
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, idxBuffer.size() * sizeof(idxBuffer[0]), &idxBuffer[0], GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBufferSize, indexBuffer, GL_STATIC_DRAW);
+
+#ifdef _DEBUG
+	SDL_Log("IB Size: %d bytes at %x", indexBufferSize, indexBuffer);
+#endif
 
 	return true;
 }
