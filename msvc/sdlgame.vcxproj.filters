@@ -131,6 +131,9 @@
     <ClInclude Include="..\src\bullet\btBulletDynamicsCommon.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\LightmapShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\src\bullet\CMakeLists.txt" />

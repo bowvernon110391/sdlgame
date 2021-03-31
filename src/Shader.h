@@ -3,6 +3,7 @@
 
 #include <glad/glad.h>
 #include <vector>
+#include <string>
 #include "Helper.h"
 
 #define ATTRIB_POS_LOC          0
@@ -12,316 +13,431 @@
 #define ATTRIB_UV2_LOC          4
 #define ATTRIB_TANGENT_LOC      5
 #define ATTRIB_BITANGENT_LOC    6
+#define ATTRIB_BONE_WEIGHTS		7
+#define ATTRIB_BONE_IDS			8
 
-#define	ATTRIB_CUSTOM			7
+#define	ATTRIB_CUSTOM			8
 
 class Shader
 {
 protected:
-    GLint programId;
+	enum UniformLoc {
+		texture0,
+		texture1,
+		texture2,
+		texture3,
+		m_model,
+		scale,
+		m_view,
+		m_projection,
+		m_model_view,
+		m_model_view_projection,
+		m_normal,
+		scene_ambient_color,
+		sun_direction,
+		sun_diffuse_color,
+		sun_specular_color,
+		sun_intensity,
+		light_diffuse_color,
+		light_specular_color,
+		light_falloff,
+		light_position,
+		spotlight_diffuse_color,
+		spotlight_specular_color,
+		spotlight_attenuation_angle,
+		spotlight_position,
+		spotlight_direction,
+		camera_position,
+		viewport_dimension,
 
-    std::vector<int> uniformLoc;
+		custom_uniform
+	};
+
+	static int getUniformId(const char* name) {
+		static std::vector<std::string> uniformIds(32);
+		static bool initialized = false;
+
+		if (!initialized) {
+			uniformIds.clear();
+			const char* uniformNames[] = {
+				"texture0",
+				"texture1",
+				"texture2",
+				"texture3",
+				"m_model",
+				"scale",
+				"m_view",
+				"m_projection",
+				"m_model_view",
+				"m_model_view_projection",
+				"m_normal",
+				"scene_ambient_color",
+				"sun_direction",
+				"sun_diffuse_color",
+				"sun_specular_color",
+				"sun_intensity",
+				"light_diffuse_color",
+				"light_specular_color",
+				"light_falloff",
+				"light_position",
+				"spotlight_diffuse_color",
+				"spotlight_specular_color",
+				"spotlight_attenuation_angle",
+				"spotlight_position",
+				"spotlight_direction",
+				"camera_position",
+				"viewport_dimension",
+			};
+			initialized = true;
+			for (int i = 0; i < sizeof(uniformNames) / sizeof(uniformNames[0]); i++) {
+				uniformIds.push_back(uniformNames[i]);
+			}
+		}
+
+		// can we find it there?
+		std::string toSearch(name);
+		// do linear search
+		SDL_Log("searching over %d uniform entries...\n", uniformIds.size());
+		for (int i = 0; i < uniformIds.size(); i++) {
+			if (uniformIds[i] == toSearch) {
+				return i;
+			}
+		}
+
+		return -1;
+	}
+
+	GLint programId;
+
+	std::vector<int> uniformLoc;
 public:
 
-    Shader(int progId = 0) : programId(progId) {
-    }
+	Shader(int progId = 0) : programId(progId) {
+	}
 
-    virtual ~Shader() {
-        if (programId)
-            glDeleteProgram(programId);
-    }
+	virtual ~Shader() {
+		if (programId)
+			glDeleteProgram(programId);
+	}
 
-    // state preparation
-    virtual void setUniformLocs() {}
-    virtual void prepareState() {}
+	// state preparation
+	virtual void setUniformLocs() {}
+	virtual void prepareState() {}
 
-    // bind program
-    void use() {
-        glUseProgram(programId);
-    }
+	// bind program
+	void use() {
+		glUseProgram(programId);
+	}
 
-    // get attribute location by name
-    int getAttribLocation(const char* name) {
-        use();
-        return glGetAttribLocation(programId, name);
-    }
+	// get attribute location by name
+	int getAttribLocation(const char* name) {
+		use();
+		return glGetAttribLocation(programId, name);
+	}
 
-    // get uniform location by name
-    int getUniformLocation(const char* name) {
-        use();
-        return glGetUniformLocation(programId, name);
-    }
+	// get uniform location by name
+	int getUniformLocation(const char* name) {
+		use();
+		return glGetUniformLocation(programId, name);
+	}
 
-    // push uniform location to specific index
-    void pushUniformLocation(const char* name, int id) {
-        // first, gotta check if i <= size, which means we need to resize
-        if (uniformLoc.size() <= id) {
-            uniformLoc.resize(id + 1);
-        }
+	// push uniform location to specific index
+	void pushUniformLocation(const char* name, int id) {
+		// first, gotta check if i <= size, which means we need to resize
+		if (uniformLoc.size() <= id) {
+			uniformLoc.resize(id + 1);
+		}
 
-        // just overwrite whatever's in there
-        uniformLoc[id] = getUniformLocation(name);
-    }
+		// just overwrite whatever's in there
+		uniformLoc[id] = getUniformLocation(name);
+	}
 
-    int getUniformLocation(int arrayIdx) {
-        SDL_assert(uniformLoc.size() > arrayIdx);
+	int getUniformLocation(int arrayIdx) {
+		SDL_assert(uniformLoc.size() > arrayIdx);
 
-        return uniformLoc[arrayIdx];
-    }
+		return uniformLoc[arrayIdx];
+	}
 
-    // compile one type of shader
-    static GLuint compileShader(GLenum shaderType, const char* src, int srcLen) {
-        if (!src || srcLen <= 0) {
+	// compile one type of shader
+	static GLuint compileShader(GLenum shaderType, const char* src, int srcLen) {
+		if (!src || srcLen <= 0) {
 			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Invalid source");
-            return 0;
-        }
+			return 0;
+		}
 
-        // create shader
+		// create shader
 #ifdef _DEBUG
 		SDL_Log("Generating shader id...");
 #endif
 
-        GLuint shd = glCreateShader(shaderType);
-        if (shd == 0) {
+		GLuint shd = glCreateShader(shaderType);
+		if (shd == 0) {
 			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Cannot generate shader %d", shaderType);
-            return 0;
-        }
+			return 0;
+		}
 
 #ifdef _DEBUG
 		SDL_Log("Generated shader id: %u", shd);
 #endif
 
-        // load source
+		// load source
 #ifdef _DEBUG
 		SDL_Log("loading source...");
 #endif
-        glShaderSource(shd, 1, &src, &srcLen);
+		glShaderSource(shd, 1, &src, &srcLen);
 
-        // compile
+		// compile
 #ifdef _DEBUG
 		SDL_Log("Compiling shader...");
 #endif
-        glCompileShader(shd);
+		glCompileShader(shd);
 
-        // check compile status
+		// check compile status
 #ifdef _DEBUG
 		SDL_Log("Checking compile status...");
 #endif
-        GLint compiled;
-        glGetShaderiv(shd, GL_COMPILE_STATUS, &compiled);
+		GLint compiled;
+		glGetShaderiv(shd, GL_COMPILE_STATUS, &compiled);
 
-        if (!compiled) {
-            GLint infoLen = 0;
+		if (!compiled) {
+			GLint infoLen = 0;
 
-            glGetShaderiv(shd, GL_INFO_LOG_LENGTH, &infoLen);
+			glGetShaderiv(shd, GL_INFO_LOG_LENGTH, &infoLen);
 
-            if (infoLen > 1) {
-                char* infoLog = new char[infoLen];
+			if (infoLen > 1) {
+				char* infoLog = new char[infoLen];
 
-                glGetShaderInfoLog(shd, infoLen, NULL, infoLog);
+				glGetShaderInfoLog(shd, infoLen, NULL, infoLog);
 
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error compiling shader: %s", infoLog);
+				SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error compiling shader: %s", infoLog);
 
-                delete [] infoLog;
-            }
+				delete[] infoLog;
+			}
 
-            // failed, delete shader
-            glDeleteShader(shd);
+			// failed, delete shader
+			glDeleteShader(shd);
 
 			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed compiling shader! unknow reason: %d %d", compiled, infoLen);
-            return 0;
-        }
+			return 0;
+		}
 
 #ifdef _DEBUG
 		SDL_Log("Final shader id: %u", shd);
 #endif
 
-        return shd;
-    }
+		return shd;
+	}
 
-    // compile shader from source inputs
-    static bool compileShader(const char* vs, const char* fs, int vsLen, int fsLen, int *shaderId) {
-        if (!shaderId) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "(!) Compiling shader without program Id (iot)");
-            return false;
-        }
+	// compile shader from source inputs
+	static bool compileShader(const char* vs, const char* fs, int vsLen, int fsLen, int* shaderId) {
+		if (!shaderId) {
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "(!) Compiling shader without program Id (iot)");
+			return false;
+		}
 
-        int vsId = compileShader(GL_VERTEX_SHADER, vs, vsLen);
+		int vsId = compileShader(GL_VERTEX_SHADER, vs, vsLen);
 
-        if (!vsId) {
+		if (!vsId) {
 			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "(!) Failed Compiling Vertex Shader!");
-            return false;
-        }
+			return false;
+		}
 
-        int fsId = compileShader(GL_FRAGMENT_SHADER, fs, fsLen);
+		int fsId = compileShader(GL_FRAGMENT_SHADER, fs, fsLen);
 
-        if (!fsId) {
+		if (!fsId) {
 			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "(!) Failed Compiling Fragment Shader!");
-            return false;
-        }
+			return false;
+		}
 
-        // create program object nao
-        GLuint progId = glCreateProgram();
+		// create program object nao
+		GLuint progId = glCreateProgram();
 
-        if (!progId) {
-            return false;
-        }
+		if (!progId) {
+			return false;
+		}
 
-        glAttachShader(progId, vsId);
-        glAttachShader(progId, fsId);
+		glAttachShader(progId, vsId);
+		glAttachShader(progId, fsId);
 
-        // set common attrib here
-        setCommonAttribLocation(progId);
+		// set common attrib here
+		setCommonAttribLocation(progId);
 
-        // link it?
-        glLinkProgram(progId);
+		// link it?
+		glLinkProgram(progId);
 
-        // check link status
-        GLint linked;
+		// check link status
+		GLint linked;
 
-        glGetProgramiv(progId, GL_LINK_STATUS, &linked);
+		glGetProgramiv(progId, GL_LINK_STATUS, &linked);
 
-        if (!linked) {
-            GLint infoLen = 0;
-            
-            glGetProgramiv(progId, GL_INFO_LOG_LENGTH, &infoLen);
+		if (!linked) {
+			GLint infoLen = 0;
 
-            if (infoLen > 1) {
-                char *infoLog = new char[infoLen];
+			glGetProgramiv(progId, GL_INFO_LOG_LENGTH, &infoLen);
 
-                glGetProgramInfoLog(progId, infoLen, NULL, infoLog);
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "(!) Program linking failed: %s", infoLog);
+			if (infoLen > 1) {
+				char* infoLog = new char[infoLen];
 
-                delete [] infoLog;
-            }
+				glGetProgramInfoLog(progId, infoLen, NULL, infoLog);
+				SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "(!) Program linking failed: %s", infoLog);
 
-            glDeleteProgram(progId);
-            return false;
-        }
+				delete[] infoLog;
+			}
 
-        *shaderId = progId;
+			glDeleteProgram(progId);
+			return false;
+		}
+
+		*shaderId = progId;
 
 		// delete shaders
 		glDeleteShader(vsId);
 		glDeleteShader(fsId);
 
-        return true;
-    }
+#ifdef _DEBUG
+		// Log the final bound attributes and uniforms
+		int cnt = 0;
+		GLenum type = 0;
+		GLint size = 0;
+		GLsizei length = 0;
+		char name[32];
 
-    // set common attribute that we use
-    static void setCommonAttribLocation(GLint progId) {
-        if (!progId)
-            return;
+		// TOTAL ACTIVE ATTRIBS
+		glGetProgramiv(progId, GL_ACTIVE_ATTRIBUTES, &cnt);
+		SDL_Log("Active_Attributes: %d\n", cnt);
+		for (int i = 0; i < cnt; ++i) {
+			glGetActiveAttrib(progId, i, 32, &length, &size, &type, name);
+			SDL_Log("%d : type(%d), size(%d), length(%d), name(%s)\n", i, type, size, length, name);
+		}
 
-        glBindAttribLocation(progId, ATTRIB_POS_LOC, "position");
-        glBindAttribLocation(progId, ATTRIB_COL_LOC, "color");
-        glBindAttribLocation(progId, ATTRIB_NORMAL_LOC, "normal");
-        glBindAttribLocation(progId, ATTRIB_UV_LOC, "uv");
-        glBindAttribLocation(progId, ATTRIB_UV2_LOC, "uv2");
-        glBindAttribLocation(progId, ATTRIB_TANGENT_LOC, "tangent");
-        glBindAttribLocation(progId, ATTRIB_BITANGENT_LOC, "bitangent");
-    }
+		// TOTAL ACTIVE UNIFORMS
+		glGetProgramiv(progId, GL_ACTIVE_UNIFORMS, &cnt);
+		SDL_Log("Active_Uniforms: %d\n", cnt);
+		for (int i = 0; i < cnt; ++i) {
+			glGetActiveUniform(progId, i, 32, &length, &size, &type, name);
+			SDL_Log("%d : type(%d), size(%d), length(%d), name(%s)\n", i, type, size, length, name);
+		}
+#endif
 
-    // create shader based on source?
-    static Shader *loadShaderFromSources(const char* vs, const int vsLen, const char* fs, const int fsLen) {
-        int progId = 0;
-        if(!compileShader(vs, fs, vsLen, fsLen, &progId)) {
+		return true;
+	}
+
+	// set common attribute that we use
+	static void setCommonAttribLocation(GLint progId) {
+		if (!progId)
+			return;
+
+		glBindAttribLocation(progId, ATTRIB_POS_LOC, "position");
+		glBindAttribLocation(progId, ATTRIB_COL_LOC, "color");
+		glBindAttribLocation(progId, ATTRIB_NORMAL_LOC, "normal");
+		glBindAttribLocation(progId, ATTRIB_UV_LOC, "uv");
+		glBindAttribLocation(progId, ATTRIB_UV2_LOC, "uv2");
+		glBindAttribLocation(progId, ATTRIB_TANGENT_LOC, "tangent");
+		glBindAttribLocation(progId, ATTRIB_BITANGENT_LOC, "bitangent");
+		glBindAttribLocation(progId, ATTRIB_BONE_WEIGHTS, "bone_weights");
+		glBindAttribLocation(progId, ATTRIB_BONE_IDS, "bone_ids");
+	}
+
+	// create shader based on source?
+	static Shader* loadShaderFromSources(const char* vs, const int vsLen, const char* fs, const int fsLen) {
+		int progId = 0;
+		if (!compileShader(vs, fs, vsLen, fsLen, &progId)) {
 			SDL_Log("Failed compiling shader. Reason? Dunno");
-            return NULL;
-        }
+			return NULL;
+		}
 
-        // success. make shader
-        return new Shader(progId);
-    }
+		// success. make shader
+		return new Shader(progId);
+	}
 
-    // load from file
-    bool loadFromFile(const char* vsFilename, const char* fsFilename) {
-        using namespace Helper;
+	// load from file
+	bool loadFromFile(const char* vsFilename, const char* fsFilename) {
+		using namespace Helper;
 
-        size_t vsLen;
-        char* vs = readFileContent(vsFilename, &vsLen);
+		size_t vsLen;
+		char* vs = readFileContent(vsFilename, &vsLen);
 
-        if (!vs) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error loading vertex shader source: %s", vsFilename);
-            return false;
-        }
-        // realloc
-        vs = (char*)realloc(vs, vsLen + 1);
-        vs[vsLen++] = 0;
+		if (!vs) {
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error loading vertex shader source: %s", vsFilename);
+			return false;
+		}
+		// realloc
+		vs = (char*)realloc(vs, vsLen + 1);
+		vs[vsLen++] = 0;
 
-        size_t fsLen;
-        char* fs = readFileContent(fsFilename, &fsLen);
+		size_t fsLen;
+		char* fs = readFileContent(fsFilename, &fsLen);
 
-        if (!fs) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error loading fragment shader source: %s", fsFilename);
-            delete[] vs;
+		if (!fs) {
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error loading fragment shader source: %s", fsFilename);
+			delete[] vs;
 
-            return false;
-        }
-        // realloc
-        fs = (char*)realloc(fs, fsLen + 1);
-        fs[fsLen++] = 0;
+			return false;
+		}
+		// realloc
+		fs = (char*)realloc(fs, fsLen + 1);
+		fs[fsLen++] = 0;
 
-        // compile
-        SDL_Log("Compiling... %s - %s", vsFilename, fsFilename);
-        bool result = Shader::compileShader(vs, fs, vsLen, fsLen, &this->programId);
+		// compile
+		SDL_Log("Compiling... %s - %s", vsFilename, fsFilename);
+		bool result = Shader::compileShader(vs, fs, vsLen, fsLen, &this->programId);
 
-        if (result) {
-            SDL_Log("Compiled: %s - %s", vsFilename, fsFilename);
-        }
+		if (result) {
+			SDL_Log("Compiled: %s - %s", vsFilename, fsFilename);
+		}
 
-        //cleanup
-        delete[] vs;
-        delete[] fs;
-        return result;
-    }
+		//cleanup
+		delete[] vs;
+		delete[] fs;
+		return result;
+	}
 
-    // create shader based on filename?
-    static Shader *loadShaderFromFile(const char* vsFilename, const char* fsFilename) {
-        using namespace Helper;
+	// create shader based on filename?
+	static Shader* loadShaderFromFile(const char* vsFilename, const char* fsFilename) {
+		using namespace Helper;
 
-        size_t vsLen;
-        char *vs = readFileContent(vsFilename, &vsLen);
+		size_t vsLen;
+		char* vs = readFileContent(vsFilename, &vsLen);
 
 		if (!vs) {
 			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error loading vertex shader source: %s", vsFilename);
 			return NULL;
 		}
 
-		char *vsCorrected = new char[vsLen + 1];
+		char* vsCorrected = new char[vsLen + 1];
 		memcpy(vsCorrected, vs, vsLen);
 		vsCorrected[vsLen] = 0;
 
-		delete [] vs;
+		delete[] vs;
 
-        size_t fsLen;
-        char *fs = readFileContent(fsFilename, &fsLen);
+		size_t fsLen;
+		char* fs = readFileContent(fsFilename, &fsLen);
 
 		if (!fs) {
 			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error loading fragment shader source: %s", fsFilename);
-			delete [] vs;
+			delete[] vs;
 
 			return NULL;
 		}
 
-		char *fsCorrected = new char[fsLen + 1];
+		char* fsCorrected = new char[fsLen + 1];
 		memcpy(fsCorrected, fs, fsLen);
 		fsCorrected[fsLen] = 0;
 
-		delete [] fs;
+		delete[] fs;
 
 #ifdef DUMP_SHADER
 		SDL_Log(vsCorrected);
 		SDL_Log(fsCorrected);
 #endif
 
-        Shader *result = loadShaderFromSources(vsCorrected, (int)vsLen + 1, fsCorrected, (int)fsLen + 1);
+		Shader* result = loadShaderFromSources(vsCorrected, (int)vsLen + 1, fsCorrected, (int)fsLen + 1);
 
-		delete [] vsCorrected;
-		delete [] fsCorrected;
+		delete[] vsCorrected;
+		delete[] fsCorrected;
 
 		return result;
-    }
+	}
 };
 
 

@@ -1,0 +1,47 @@
+shader common uniform data:
+// from shader data?
+- sampler2D texture0
+- sampler2D texture1
+- sampler2D texture2
+- sampler2D texture3
+
+// from model
+- mat4 m_model
+- vec3 scale
+
+// from renderer
+- mat4 m_view
+- mat4 m_projection
+- mat4 m_model_view
+- mat4 m_model_view_projection
+- mat3 m_normal
+- vec4 scene_ambient_color
+- vec3 sun_direction
+- vec4 sun_diffuse_color
+- vec4 sun_specular_color
+- vec4 sun_intensity
+
+- vec4 light_diffuse_color[4]
+- vec4 light_specular_color[4]
+- vec4 light_falloff[4]	// constant, linear, quadratic
+- vec3 light_position[4]
+
+- vec4 spotlight_diffuse_color[2]
+- vec4 spotlight_specular_color[2]
+- vec4 spotlight_attenuation_angle[2] // constant, linear, quadratic, angle
+- vec3 spotlight_position[2]
+- vec3 spotlight_direction[2]
+
+- vec3 camera_position
+- ivec4 viewport_dimension
+
+shader common attributes:
+- vec3 position
+- vec3 normal
+- vec4 color
+- vec2 uv0
+- vec2 uv1
+- vec3 tangent
+- vec3 bitangent
+- vec4 bone_weights
+- ivec4 bone_ids

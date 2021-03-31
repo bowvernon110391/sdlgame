@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <vector>
+#include "Helper.h"
+#include <stdio.h>
 
 #define DEBUG_BCF   1
 
@@ -217,19 +219,121 @@ public:
         m->vertexFormat = *(unsigned char*)ptr;
         ++ptr;
 
+#ifdef _DEBUG
+        printf("BCF_VTX_FORMAT: %d\n", m->vertexFormat);
+#endif
+
         // 1b: bytes_per_vertex
         m->strideLength = *(unsigned char*)ptr;
         ++ptr;
+
+#ifdef _DEBUG
+        printf("BCF_BYTES_PER_VERTEX: %d\n", m->strideLength);
+#endif
 
         // 2b: vertex count
         unsigned short vert_count = *(unsigned short*)ptr;
         ptr += 2;
 
+#ifdef _DEBUG
+        printf("BCF_VERTEX_COUNT: %d\n", vert_count);
+#endif
+
         // 4b: vbuffer size
-        unsigned int vb_size = *(unsigned int*)ptr;
+        m->vertexBufferSize = *(unsigned int*)ptr;
         ptr += 4;
+        
+#ifdef _DEBUG
+        printf("BCF_VBUFFER_SIZE: %d\n", m->vertexBufferSize);
+#endif
 
+        // 2b: submesh_count
+        int submeshCount = *(unsigned short*)ptr;
+        ptr += 2;
 
+#ifdef _DEBUG
+        printf("BCF_SUBMESHES_COUNT: %d\n", submeshCount);
+#endif
+
+        // 32b: objname
+        strcpy(m->name, ptr);
+        ptr += 32;
+
+#ifdef _DEBUG
+        printf("BCF_OBJECT_NAME: %s\n", m->name);
+#endif
+
+        // 2b: total_tris
+        int numTris = *(unsigned short*)ptr;
+        ptr += 2;
+
+#ifdef _DEBUG
+        printf("BCF_TOTAL_TRIS: %d\n", numTris);
+#endif
+
+        // read all submesh data
+        for (int i = 0; i < submeshCount; i++) {
+            Mesh::SubMesh s;
+
+            // 32b: material_name
+            strcpy(s.materialName, ptr);
+            ptr += 32;
+
+            // 2b: begin_at (index), convert to bytes by mult * 6
+            s.idxBegin = *(unsigned short*)ptr;
+            s.idxBegin *= 6;
+            ptr += 2;
+
+            // 2b: total_tri, convert to elem_count by mult * 3
+            s.elemCount = *(unsigned short*)ptr;
+            s.elemCount *= 3;
+            ptr += 2;
+
+#ifdef _DEBUG
+            printf("BCF_SUBMESHES[%d]: matcap(%s), idxbegin(%d), elemcount(%d)\n", 
+                i, s.materialName, s.idxBegin, s.elemCount);
+#endif
+
+            // add to mesh
+            m->subMeshes.push_back(s);
+        }
+
+        // read vertex buffer
+        m->vertexBuffer = new char[m->vertexBufferSize];
+        memcpy(m->vertexBuffer, ptr, m->vertexBufferSize);
+        ptr += m->vertexBufferSize;
+
+#ifdef _DEBUG
+        printf("BCF_VBUFFER_PTR: 0x%X\n", m->vertexBuffer);
+#endif
+
+        // read index buffer
+        m->indexBufferSize = numTris * 6;
+        m->indexBuffer = new unsigned short[numTris * 3];
+        memcpy(m->indexBuffer, ptr, m->indexBufferSize);
+
+#ifdef _DEBUG
+        printf("BCF_IBUFFER_PTR: 0x%X\n", m->indexBuffer);
+#endif
+
+        return m;
+    }
+
+    static Mesh* loadBCFFromFile(const char* filename) {
+        size_t contentSize;
+
+        using namespace Helper;
+
+        char* content = readFileContent(filename, &contentSize);
+
+        if (content) {
+            Mesh* m = loadBCFfromMemory(content, contentSize);
+            delete[] content;
+
+            return m;
+        }
+
+        return 0;
     }
 };
 

@@ -7,7 +7,7 @@ Mesh::~Mesh() {
 	if (vbo) glDeleteBuffers(1, &vbo);
 	if (ibo) glDeleteBuffers(1, &ibo);
 
-	if (vertexBuffer) { delete[] vertexBuffer; vertexBuffer = 0; }
+	if (vertexBuffer) { delete[] (char*)vertexBuffer; vertexBuffer = 0; }
 	if (indexBuffer) { delete[] indexBuffer; indexBuffer = 0; }
 }
 

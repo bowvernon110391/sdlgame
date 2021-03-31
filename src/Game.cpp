@@ -24,6 +24,7 @@
 #include "Light.h"
 #include "DebugLightShader.h"
 #include "BoxShader.h"
+#include "LightmapShader.h"
 
 #include "btBulletDynamicsCommon.h"
 
@@ -32,6 +33,11 @@ using std::vector;
 static vector<Light> lights;
 static GShader::DebugLightShader* lightShader;
 static GShader::BoxShader* boxShader;
+static GShader::LightmapShader* lightmapShader;
+
+static Texture2D** sceneTextures;
+static Texture2D* lightmapTexture;
+
 static bool dragStart = false;
 
 static bool renderInterpolation = true;
@@ -241,6 +247,7 @@ orthoRange(10.0f),
 projectionType(PROJECTION_PERSPECTIVE)
 {
     cube = nullptr;
+	scene = nullptr;
 	
 	bgColor[0] = .2f;
 	bgColor[1] = .5f;
@@ -320,15 +327,38 @@ void Game::onInit() {
 		}
 	}
 
+	scene = Mesh::loadBCFFromFile("meshes/scene.bcf");
+	if (scene) {
+		scene->createBufferObjects();
+	}
+
+	SDL_Log("Mesh Data (%s): vtxformat(%d), vbsize(%d), idxsize(%d), submeshes(%d), bytespervertex(%d)",
+		scene->name, scene->vertexFormat, scene->vertexBufferSize, scene->indexBufferSize, 
+		scene->subMeshes.size(), scene->strideLength);
+
 	// load debug light shader
 	lightShader = new GShader::DebugLightShader;
 	lightShader->loadFromFile("shaders/lightdebug.vert", "shaders/lightdebug.frag");
 	lightShader->setUniformLocs();
 
+	SDL_Log("Test: lookup(texture2, viewport_dimension) = %d, %d\n", Shader::getUniformId("texture2"), Shader::getUniformId("viewport_dimension"));
+
 	// load box shader
 	boxShader = new GShader::BoxShader;
 	boxShader->loadFromFile("shaders/box.vert", "shaders/box.frag");
 	boxShader->setUniformLocs();
+
+	// load lightmap shader
+	lightmapShader = new GShader::LightmapShader;
+	lightmapShader->loadFromFile("shaders/lightmap.vert", "shaders/lightmap.frag");
+	lightmapShader->setUniformLocs();
+
+	sceneTextures = new Texture2D * [3];
+	sceneTextures[0] = Texture2D::loadFromFile("textures/cliff.jpg", GL_LINEAR_MIPMAP_NEAREST, GL_LINEAR, GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T, true);
+	sceneTextures[1] = Texture2D::loadFromFile("textures/grass.jpg", GL_LINEAR_MIPMAP_NEAREST, GL_LINEAR, GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T, true);
+	sceneTextures[2] = Texture2D::loadFromFile("textures/gravel.jpg", GL_LINEAR_MIPMAP_NEAREST, GL_LINEAR, GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T, true);
+	
+	lightmapTexture = Texture2D::loadFromFile("textures/lightmap.png", GL_LINEAR_MIPMAP_NEAREST, GL_LINEAR, GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T, true);
 
 	// set ambient color
 	boxShader->ambientColor = glm::vec3(0.12f, 0.1f, 0.25f);
@@ -373,9 +403,13 @@ void Game::onInit() {
 	glEnableVertexAttribArray(ATTRIB_POS_LOC);
 	glEnableVertexAttribArray(ATTRIB_NORMAL_LOC);
 	glEnableVertexAttribArray(ATTRIB_UV_LOC);
+	glEnableVertexAttribArray(ATTRIB_UV2_LOC);
 
 	// enable msaa x4
 	glEnable(GL_MULTISAMPLE);
+
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CCW);
 
 	// init imgui
 	initImGui();
@@ -393,10 +427,18 @@ void Game::onInit() {
 void Game::onDestroy() {
     // do clean up here rather than at destructor
     // if (simple) delete simple;
+	if (scene) delete scene;
 	if (cube) delete cube;
 	if (tex) delete tex;
 	if (lightShader) delete lightShader;
 	if (boxShader) delete boxShader;
+	if (lightmapShader) delete lightmapShader;
+
+	if (lightmapTexture) delete lightmapTexture;
+	if (sceneTextures[0]) delete sceneTextures[0];
+	if (sceneTextures[1]) delete sceneTextures[1];
+	if (sceneTextures[2]) delete sceneTextures[2];
+	delete[] sceneTextures;
 
 	// cleanup imgui
 	destroyImGui();
@@ -617,11 +659,34 @@ void Game::onRender(float dt) {
 		for (int i = 0; i < cube->subMeshes.size(); i++) {
 			Mesh::SubMesh& s = cube->subMeshes[i];
 
-			glDrawElements(GL_TRIANGLES, s.elemCount, GL_UNSIGNED_SHORT, (void*)s.idxBegin);
+			//glDrawElements(GL_TRIANGLES, s.elemCount, GL_UNSIGNED_SHORT, (void*)s.idxBegin);
 		}
 	}
 
-	
+	// draw scene test
+	glEnable(GL_CULL_FACE);
+	lightmapShader->prepareState();
+	lightmapShader->use();
+
+	glm::mat4 mvp = proj * view * glm::mat4(1.0f);
+
+	lightmapShader->setTexture1(lightmapTexture);
+	lightmapShader->setTransformData(mvp);
+
+	scene->use();
+
+	glVertexAttribPointer(ATTRIB_POS_LOC, 3, GL_FLOAT, false, scene->strideLength, (void*)0);
+	glVertexAttribPointer(ATTRIB_NORMAL_LOC, 3, GL_FLOAT, false, scene->strideLength, (void*)12);
+	glVertexAttribPointer(ATTRIB_UV_LOC, 2, GL_FLOAT, false, scene->strideLength, (void*)24);
+	glVertexAttribPointer(ATTRIB_UV2_LOC, 2, GL_FLOAT, false, scene->strideLength, (void*)32);
+
+	// draw call
+	for (int i = 0; i < scene->subMeshes.size(); i++) {
+		const Mesh::SubMesh& s = scene->subMeshes[i];
+		lightmapShader->setTexture0(sceneTextures[i]);
+		glDrawElements(GL_TRIANGLES, s.elemCount, GL_UNSIGNED_SHORT, (void*)s.idxBegin);
+	}
+	glDisable(GL_CULL_FACE);
 
 	// draw lights?
 	// setup shader
@@ -818,6 +883,10 @@ void Game::onEvent(SDL_Event *e) {
 		if (e->type == SDL_MOUSEMOTION && dragStart) {
 			dragPos[0] = e->motion.x;
 			dragPos[1] = e->motion.y;
+		}
+
+		if (e->type == SDL_MOUSEWHEEL) {
+			camDist += e->wheel.y * -0.1f;
 		}
 	} 
 

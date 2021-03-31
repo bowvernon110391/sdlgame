@@ -25,7 +25,7 @@ private:
 
     glm::mat4 proj, view, model;
 
-    Mesh *cube;
+    Mesh *cube, *scene;
     Texture2D* tex;
 public:
     Game(/* args */);
