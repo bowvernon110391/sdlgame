@@ -164,14 +164,17 @@
     <ClCompile Include="..\src\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Mesh.cpp" />
+    <ClCompile Include="..\src\Renderer.cpp" />
+    <ClCompile Include="..\src\SceneData.cpp" />
     <ClCompile Include="..\src\Texture2d.cpp" />
+    <ClCompile Include="MaterialSet.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\App.h" />
-    <ClInclude Include="..\src\BoxShader.h" />
+    <ClInclude Include="..\src\BaseRenderObject.h" />
     <ClInclude Include="..\src\bullet\btBulletCollisionCommon.h" />
     <ClInclude Include="..\src\bullet\btBulletDynamicsCommon.h" />
-    <ClInclude Include="..\src\DebugLightShader.h" />
+    <ClInclude Include="..\src\Camera.h" />
     <ClInclude Include="..\src\Game.h" />
     <ClInclude Include="..\src\Helper.h" />
     <ClInclude Include="..\src\imgui\imconfig.h" />
@@ -183,13 +186,21 @@
     <ClInclude Include="..\src\imgui\imstb_textedit.h" />
     <ClInclude Include="..\src\imgui\imstb_truetype.h" />
     <ClInclude Include="..\src\Light.h" />
-    <ClInclude Include="..\src\LightmapShader.h" />
+    <ClInclude Include="..\src\Material.h" />
+    <ClInclude Include="..\src\RenderObjectData.h" />
+    <ClInclude Include="..\src\SceneData.h" />
+    <ClInclude Include="..\src\ShaderData.h" />
     <ClInclude Include="..\src\Mesh.h" />
+    <ClInclude Include="..\src\Renderer.h" />
     <ClInclude Include="..\src\Shader.h" />
+    <ClInclude Include="..\src\shader_attributes.h" />
+    <ClInclude Include="..\src\shader_uniforms.h" />
     <ClInclude Include="..\src\stb\stb_image.h" />
     <ClInclude Include="..\src\stb\stb_image_resize.h" />
     <ClInclude Include="..\src\stb\stb_image_write.h" />
     <ClInclude Include="..\src\Texture2d.h" />
+    <ClInclude Include="..\src\BaseRenderObjectData.h" />
+    <ClInclude Include="MaterialSet.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\src\bullet\CMakeLists.txt" />

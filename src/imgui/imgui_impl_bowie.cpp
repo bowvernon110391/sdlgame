@@ -9,6 +9,7 @@
 
 static Texture2D* fontTexture = 0;
 static Shader* fontShader = 0;
+static ShaderData* fontShaderData = 0;
 static glm::mat4 projMat;
 static GLuint vboHandle;
 static GLuint iboHandle;
@@ -124,6 +125,7 @@ bool ImGui_ImplBowie_CreateFontsTexture() {
 			fontTexture->texData = NULL;
 			// set font texture data
 			io.Fonts->SetTexID((ImTextureID)(intptr_t)fontTexture->texId);
+			fontShaderData = (new ShaderData())->fillTextureSlot(0, fontTexture);
 			return true;
 		}
 	}
@@ -133,7 +135,7 @@ bool ImGui_ImplBowie_CreateFontsTexture() {
 // create font shader for our implementation
 static void ImGui_ImplBowie_CreateFontShader() {
 	const char* vertShader = " \
-	uniform mat4 matProj;\n \
+	uniform mat4 m_projection;\n \
 	\
 	attribute vec2 position;\n \
 	attribute vec2 uv;\n \
@@ -145,7 +147,7 @@ static void ImGui_ImplBowie_CreateFontShader() {
 	void main() {\n \
 		vColor = color;\n \
 		vTexcoord = uv;\n \
-		gl_Position = matProj * vec4(position.xy, 0, 1);\n \
+		gl_Position = m_projection * vec4(position.xy, 0, 1);\n \
 	}\n \
 	";
 
@@ -154,25 +156,25 @@ static void ImGui_ImplBowie_CreateFontShader() {
 	precision mediump float;\n \
 	#endif\n \
 	\
-	uniform sampler2D tex0;\n \
+	uniform sampler2D texture0;\n \
 	\
 	varying vec4 vColor;\n \
 	varying vec2 vTexcoord;\n \
 	\
 	void main() {\n \
-		vec4 color = texture2D(tex0, vTexcoord); \n \
+		vec4 color = texture2D(texture0, vTexcoord); \n \
 		gl_FragColor = vColor * color;\n \
 	}\n \
 	";
 
 	if (!fontShader) {
-		fontShader = Shader::loadShaderFromSources(vertShader, strlen(vertShader), fragShader, strlen(fragShader));
+		//fontShader = Shader::loadShaderFromSources(vertShader, strlen(vertShader), fragShader, strlen(fragShader));
+		fontShader = Shader::fromMemory(vertShader, strlen(vertShader), fragShader, strlen(fragShader));
 
 		// setup some uniform
 		if (fontShader) {
-			fontShader->pushUniformLocation("tex0", FONT_TEXTURE_UNIFORM_LOC);
-			fontShader->pushUniformLocation("matProj", PROJ_MAT_UNIFORM_LOC);
 			SDL_Log("Font shader loaded");
+			fontShader->printDebug();
 		}
 		else {
 			SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed loading font shader!");
@@ -203,6 +205,10 @@ void ImGui_ImplBowie_DestroyFontsTexture() {
 		delete fontTexture;
 		fontTexture = 0;
 	}
+	if (fontShaderData) {
+		delete fontShaderData;
+		fontShaderData = 0;
+	}
 }
 
 void ImGui_ImplBowie_DestroyDeviceObjects() {
@@ -218,7 +224,6 @@ void ImGui_ImplBowie_DestroyDeviceObjects() {
 		glDeleteBuffers(1, &iboHandle);
 		iboHandle = 0;
 	}
-
 }
 
 // drawing function!
@@ -234,30 +239,31 @@ static void Imgui_ImplBowie_SetupRenderState(int fb_width, int fb_height, ImDraw
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_SCISSOR_TEST);
+	glEnable(GL_TEXTURE_2D);
 
 	glViewport(0, 0, fb_width, fb_height);
 
 	// setup shader
-	fontShader->use();
-	// enable texturing
-	glEnable(GL_TEXTURE_2D);
-	glActiveTexture(GL_TEXTURE0);
+	fontShader->bind();
+	fontShader->setupData(fontShaderData);	// setupData per material
 	// projection matrix
-	glUniformMatrix4fv(fontShader->getUniformLocation(PROJ_MAT_UNIFORM_LOC), 1, false, glm::value_ptr(projMat));
-	// texture unit
-	glUniform1i(fontShader->getUniformLocation(FONT_TEXTURE_UNIFORM_LOC), 0);
-
+	glUniformMatrix4fv(fontShader->getUniformLocation(Shader::UniformLoc::m_projection), 1, false, glm::value_ptr(projMat));
+	
 	// setup buffers
 	glBindBuffer(GL_ARRAY_BUFFER, vboHandle);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboHandle);
 
-	glEnableVertexAttribArray(ATTRIB_POS_LOC);
-	glEnableVertexAttribArray(ATTRIB_COL_LOC);
-	glEnableVertexAttribArray(ATTRIB_UV_LOC);
+	int position_loc = fontShader->getAttribLocation(Shader::AttribLoc::position);
+	int color_loc = fontShader->getAttribLocation(Shader::AttribLoc::color);
+	int uv_loc = fontShader->getAttribLocation(Shader::AttribLoc::uv);
 
-	glVertexAttribPointer(ATTRIB_POS_LOC, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, pos));
-	glVertexAttribPointer(ATTRIB_UV_LOC, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, uv));
-	glVertexAttribPointer(ATTRIB_COL_LOC, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, col));
+	glEnableVertexAttribArray(position_loc);
+	glEnableVertexAttribArray(color_loc);
+	glEnableVertexAttribArray(uv_loc);
+
+	glVertexAttribPointer(position_loc, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, pos));
+	glVertexAttribPointer(color_loc, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, col));
+	glVertexAttribPointer(uv_loc, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, uv));
 
 	
 }

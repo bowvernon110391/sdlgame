@@ -44,7 +44,7 @@ public:
 
 	bool upload(bool retainPixelData = false);
 
-	void use() {
+	void bind() {
 		glBindTexture(GL_TEXTURE_2D, texId);
 	}
 

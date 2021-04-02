@@ -8,12 +8,12 @@
 
 #define DEBUG_BCF   1
 
-#define VF_XYZ      (1<<0)
-#define VF_NORMAL   (1<<1)
-#define VF_UV       (1<<2)
-#define VF_TANGENT  (1<<3)
-#define VF_UV2      (1<<4)
-#define VF_COLOR    (1<<5)
+#define VF_XYZ      (1<<0)  // 12 bytes xyz
+#define VF_NORMAL   (1<<1)  // 12 bytes xyz
+#define VF_UV       (1<<2)  // 8 bytes xy
+#define VF_TANGENT  (1<<3)  // 24 bytes xyz xyz
+#define VF_UV2      (1<<4)  // 8 bytes xy
+#define VF_COLOR    (1<<5)  // 16 bytes xyzw
 
 class Mesh
 {
@@ -22,6 +22,8 @@ public:
     typedef struct SubMesh 
     {
         // this contains the indices begin-end only
+        // idxBegin is already a memory offset (not index)
+        // elemCount also already total count of elements
         uint16_t idxBegin, elemCount;
         char materialName[32];
     } SubMesh_t;
@@ -52,10 +54,10 @@ public:
     ~Mesh();
 
 	// instantiate buffer
-	bool createBufferObjects();
+	Mesh* createBufferObjects();
 
 	// bind buffers
-	void use();
+	void bind();
 
     // helper shiet
     static Mesh* createTexturedQuad(float w) {
@@ -304,7 +306,7 @@ public:
         ptr += m->vertexBufferSize;
 
 #ifdef _DEBUG
-        printf("BCF_VBUFFER_PTR: 0x%X\n", m->vertexBuffer);
+        printf("BCF_VBUFFER_PTR: 0x%X\n", (unsigned int)m->vertexBuffer);
 #endif
 
         // read index buffer
@@ -313,7 +315,7 @@ public:
         memcpy(m->indexBuffer, ptr, m->indexBufferSize);
 
 #ifdef _DEBUG
-        printf("BCF_IBUFFER_PTR: 0x%X\n", m->indexBuffer);
+        printf("BCF_IBUFFER_PTR: 0x%X\n", (unsigned int)m->indexBuffer);
 #endif
 
         return m;

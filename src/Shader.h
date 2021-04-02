@@ -5,53 +5,36 @@
 #include <vector>
 #include <string>
 #include "Helper.h"
+#include "ShaderData.h"
 
-#define ATTRIB_POS_LOC          0
-#define ATTRIB_COL_LOC          1
-#define ATTRIB_NORMAL_LOC       2
-#define ATTRIB_UV_LOC           3
-#define ATTRIB_UV2_LOC          4
-#define ATTRIB_TANGENT_LOC      5
-#define ATTRIB_BITANGENT_LOC    6
-#define ATTRIB_BONE_WEIGHTS		7
-#define ATTRIB_BONE_IDS			8
+#define U_SET(x) uniformLoc[(x)] >= 0
+#define U_LOC(x) uniformLoc[(x)]
 
-#define	ATTRIB_CUSTOM			8
+#define SU(x) Shader::UniformLoc::##x
+#define SU_LOC(s, x) (s->getUniformLocation(SU(x)))
+#define SU_SET(s, x) (SU_LOC(x) >= 0)
+
+//#define DEBUG_SHADER
 
 class Shader
 {
-protected:
+public:
 	enum UniformLoc {
-		texture0,
-		texture1,
-		texture2,
-		texture3,
-		m_model,
-		scale,
-		m_view,
-		m_projection,
-		m_model_view,
-		m_model_view_projection,
-		m_normal,
-		scene_ambient_color,
-		sun_direction,
-		sun_diffuse_color,
-		sun_specular_color,
-		sun_intensity,
-		light_diffuse_color,
-		light_specular_color,
-		light_falloff,
-		light_position,
-		spotlight_diffuse_color,
-		spotlight_specular_color,
-		spotlight_attenuation_angle,
-		spotlight_position,
-		spotlight_direction,
-		camera_position,
-		viewport_dimension,
-
+#define DECLARE_ENUM(x) x,
+#include "shader_uniforms.h"
 		custom_uniform
 	};
+
+	enum AttribLoc {
+#include "shader_attributes.h"
+		custom_attribute
+	};
+
+	// bind program
+	void bind() const {
+		glUseProgram(programId);
+	}
+protected:
 
 	static int getUniformId(const char* name) {
 		static std::vector<std::string> uniformIds(32);
@@ -60,33 +43,10 @@ protected:
 		if (!initialized) {
 			uniformIds.clear();
 			const char* uniformNames[] = {
-				"texture0",
-				"texture1",
-				"texture2",
-				"texture3",
-				"m_model",
-				"scale",
-				"m_view",
-				"m_projection",
-				"m_model_view",
-				"m_model_view_projection",
-				"m_normal",
-				"scene_ambient_color",
-				"sun_direction",
-				"sun_diffuse_color",
-				"sun_specular_color",
-				"sun_intensity",
-				"light_diffuse_color",
-				"light_specular_color",
-				"light_falloff",
-				"light_position",
-				"spotlight_diffuse_color",
-				"spotlight_specular_color",
-				"spotlight_attenuation_angle",
-				"spotlight_position",
-				"spotlight_direction",
-				"camera_position",
-				"viewport_dimension",
+#undef DECLARE_ENUM
+#define DECLARE_ENUM(x) #x ,
+#include "shader_uniforms.h"
+				"invalid"
 			};
 			initialized = true;
 			for (int i = 0; i < sizeof(uniformNames) / sizeof(uniformNames[0]); i++) {
@@ -98,7 +58,7 @@ protected:
 		std::string toSearch(name);
 		// do linear search
 		SDL_Log("searching over %d uniform entries...\n", uniformIds.size());
-		for (int i = 0; i < uniformIds.size(); i++) {
+		for (size_t i = 0; i < uniformIds.size(); i++) {
 			if (uniformIds[i] == toSearch) {
 				return i;
 			}
@@ -107,55 +67,38 @@ protected:
 		return -1;
 	}
 
-	GLint programId;
+	static int getAttributeId(const char* name) {
+		static std::vector<std::string> attributeIds;
+		static bool initialized = false;
 
-	std::vector<int> uniformLoc;
-public:
-
-	Shader(int progId = 0) : programId(progId) {
-	}
-
-	virtual ~Shader() {
-		if (programId)
-			glDeleteProgram(programId);
-	}
-
-	// state preparation
-	virtual void setUniformLocs() {}
-	virtual void prepareState() {}
-
-	// bind program
-	void use() {
-		glUseProgram(programId);
-	}
-
-	// get attribute location by name
-	int getAttribLocation(const char* name) {
-		use();
-		return glGetAttribLocation(programId, name);
-	}
-
-	// get uniform location by name
-	int getUniformLocation(const char* name) {
-		use();
-		return glGetUniformLocation(programId, name);
-	}
-
-	// push uniform location to specific index
-	void pushUniformLocation(const char* name, int id) {
-		// first, gotta check if i <= size, which means we need to resize
-		if (uniformLoc.size() <= id) {
-			uniformLoc.resize(id + 1);
+		if (!initialized) {
+			attributeIds.clear();
+			const char* attributeNames[] = {
+#include "shader_attributes.h"
+				"invalid"
+			};
+			initialized = true;
+			for (int i = 0; i < sizeof(attributeNames) / sizeof(attributeNames[0]); i++) {
+				attributeIds.push_back(attributeNames[i]);
+			}
 		}
 
-		// just overwrite whatever's in there
-		uniformLoc[id] = getUniformLocation(name);
+		// do linear search
+		std::string toSearch(name);
+		for (size_t i = 0; i < attributeIds.size(); i++) {
+			if (attributeIds[i] == toSearch) {
+				return i;
+			}
+		}
+
+		return -1;
 	}
 
-	int getUniformLocation(int arrayIdx) {
-		SDL_assert(uniformLoc.size() > arrayIdx);
+	GLint programId;
+	std::vector<int> uniformLoc;
+	std::vector<int> attributeLoc;
 
-		return uniformLoc[arrayIdx];
+	Shader(int progId = -1) : programId(progId), attributeFlags(0) {
 	}
 
 	// compile one type of shader
@@ -259,9 +202,6 @@ public:
 		glAttachShader(progId, vsId);
 		glAttachShader(progId, fsId);
 
-		// set common attrib here
-		setCommonAttribLocation(progId);
-
 		// link it?
 		glLinkProgram(progId);
 
@@ -321,37 +261,157 @@ public:
 
 		return true;
 	}
+public:
+	int attributeFlags;
 
-	// set common attribute that we use
-	static void setCommonAttribLocation(GLint progId) {
-		if (!progId)
-			return;
-
-		glBindAttribLocation(progId, ATTRIB_POS_LOC, "position");
-		glBindAttribLocation(progId, ATTRIB_COL_LOC, "color");
-		glBindAttribLocation(progId, ATTRIB_NORMAL_LOC, "normal");
-		glBindAttribLocation(progId, ATTRIB_UV_LOC, "uv");
-		glBindAttribLocation(progId, ATTRIB_UV2_LOC, "uv2");
-		glBindAttribLocation(progId, ATTRIB_TANGENT_LOC, "tangent");
-		glBindAttribLocation(progId, ATTRIB_BITANGENT_LOC, "bitangent");
-		glBindAttribLocation(progId, ATTRIB_BONE_WEIGHTS, "bone_weights");
-		glBindAttribLocation(progId, ATTRIB_BONE_IDS, "bone_ids");
+	static Shader* fromFile(const char* vsFilename, const char* fsFilename) {
+		// create shader object, load from file, set its data
+		Shader* s = new Shader();
+		s->loadFromFile(vsFilename, fsFilename);
+		// set uniform locations
+		s->setUniformLocations();
+		// set common attrib locations
+		s->setAttributeLocations();
+		return s;
 	}
 
-	// create shader based on source?
-	static Shader* loadShaderFromSources(const char* vs, const int vsLen, const char* fs, const int fsLen) {
-		int progId = 0;
-		if (!compileShader(vs, fs, vsLen, fsLen, &progId)) {
-			SDL_Log("Failed compiling shader. Reason? Dunno");
-			return NULL;
+	static Shader* fromMemory(const char* vsSource, size_t vsSourceLen, const char* fsSource, size_t fsSourceLen) {
+		Shader* s = new Shader();
+		s->loadFromMemory(vsSource, vsSourceLen, fsSource, fsSourceLen);
+		s->setUniformLocations();
+		s->setAttributeLocations();
+		return s;
+	}
+
+	virtual ~Shader() {
+		if (programId)
+			glDeleteProgram(programId);
+	}
+
+	// fill active uniforms
+	virtual void setUniformLocations() {
+		// fill with negative one
+		//uniformLoc.resize(32);
+		std::fill(uniformLoc.begin(), uniformLoc.end(), -1);
+		// gotta get all active uniforms
+		GLint cnt, size;
+		GLenum type;
+		GLsizei bufLen = 32, length;
+		char buf[32];
+		glGetProgramiv(programId, GL_ACTIVE_UNIFORMS, &cnt);
+
+		for (GLint i = 0; i < cnt; i++) {
+			glGetActiveUniform(programId, i, bufLen, &length, &size, &type, buf);
+#ifdef _DEBUG
+			SDL_Log("active_uniform[%d]: name(%s), length(%d), size(%d), type(%d)\n", i, buf, length, size, type);
+#endif // _DEBUG
+			pushUniformLocation(buf, getUniformId(buf));
+		}
+	}
+
+	virtual void setAttributeLocations() {
+		//attributeLoc.resize(16);
+		std::fill(attributeLoc.begin(), attributeLoc.end(), -1);
+		// gotta get all active uniforms
+		GLint cnt, size;
+		GLenum type;
+		GLsizei bufLen = 32, length;
+		char buf[32];
+		glGetProgramiv(programId, GL_ACTIVE_ATTRIBUTES, &cnt);
+
+		for (GLint i = 0; i < cnt; i++) {
+			glGetActiveAttrib(programId, i, bufLen, &length, &size, &type, buf);
+#ifdef _DEBUG
+			SDL_Log("active_attribute[%d]: name(%s), length(%d), size(%d), type(%d)\n", i, buf, length, size, type);
+#endif // _DEBUG
+			int attributeId = getAttributeId(buf);
+			pushAttributeLocation(buf, attributeId);
+
+			if (attributeId >= 0) {
+				attributeFlags |= (1 << attributeId);
+			}
 		}
 
-		// success. make shader
-		return new Shader(progId);
+		// set shader attribute bitflags
+	}
+
+	// get attribute location by name
+	int getAttribLocation(const char* name) {
+		bind();
+		return glGetAttribLocation(programId, name);
+	}
+
+	// get uniform location by name
+	int getUniformLocation(const char* name) {
+		bind();
+		return glGetUniformLocation(programId, name);
+	}
+
+	// push uniform location to specific index
+	void pushUniformLocation(const char* name, size_t id) {
+		// first, gotta check if i <= size, which means we need to resize
+		if (uniformLoc.size() <= id) {
+			uniformLoc.resize(id + 1);
+		}
+
+		// just overwrite whatever's in there
+		uniformLoc[id] = getUniformLocation(name);
+	}
+
+	// push attribute location to specific index
+	void pushAttributeLocation(const char* name, size_t id) {
+		if (attributeLoc.size() <= id) {
+			attributeLoc.resize(id + 1);
+		}
+		attributeLoc[id] = getAttribLocation(name);
+	}
+
+	int getUniformLocation(int arrayIdx) const {
+		if (arrayIdx >= uniformLoc.size()) {
+			return -1;
+		}
+#ifdef DEBUG_SHADER
+		SDL_Log("Getting Uniform: %d\n", arrayIdx);
+#endif // DEBUG_SHADER
+
+		SDL_assert(uniformLoc.size() > (size_t) arrayIdx);
+
+		return uniformLoc[arrayIdx];
+	}
+
+	int getAttribLocation(int arrayIdx) const {
+		if (arrayIdx >= attributeLoc.size()) {
+			return -1;
+		}
+#ifdef DEBUG_SHADER
+		SDL_Log("Getting Attribute: %d\n", arrayIdx);
+#endif // DEBUG_SHADER
+		SDL_assert(attributeLoc.size() > (size_t)arrayIdx);
+
+		return attributeLoc[arrayIdx];
+	}
+
+	void printDebug() {
+#ifdef _DEBUG
+		SDL_Log("VERTEX_ATTRIBUTE_FLAGS: %d -> %b", attributeFlags, attributeFlags);
+		for (int i = 0; i < attributeLoc.size(); i++) {
+			SDL_Log("Attribute[%d]: %d\n", i, attributeLoc[i]);
+		}
+		for (int i = 0; i < uniformLoc.size(); i++) {
+			SDL_Log("Uniform[%d]: %d\n", i, uniformLoc[i]);
+		}
+#endif // _DEBUG
+
+	}
+
+	// load from memory
+	Shader* loadFromMemory(const char* vsSource, size_t vsLen, const char* fsSource, size_t fsLen) {
+		bool result = Shader::compileShader(vsSource, fsSource, vsLen, fsLen, &programId);
+		return this;
 	}
 
 	// load from file
-	bool loadFromFile(const char* vsFilename, const char* fsFilename) {
+	Shader* loadFromFile(const char* vsFilename, const char* fsFilename) {
 		using namespace Helper;
 
 		size_t vsLen;
@@ -359,7 +419,7 @@ public:
 
 		if (!vs) {
 			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error loading vertex shader source: %s", vsFilename);
-			return false;
+			return this;
 		}
 		// realloc
 		vs = (char*)realloc(vs, vsLen + 1);
@@ -372,7 +432,7 @@ public:
 			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error loading fragment shader source: %s", fsFilename);
 			delete[] vs;
 
-			return false;
+			return this;
 		}
 		// realloc
 		fs = (char*)realloc(fs, fsLen + 1);
@@ -389,54 +449,45 @@ public:
 		//cleanup
 		delete[] vs;
 		delete[] fs;
-		return result;
+
+		return this;
 	}
 
-	// create shader based on filename?
-	static Shader* loadShaderFromFile(const char* vsFilename, const char* fsFilename) {
-		using namespace Helper;
-
-		size_t vsLen;
-		char* vs = readFileContent(vsFilename, &vsLen);
-
-		if (!vs) {
-			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error loading vertex shader source: %s", vsFilename);
-			return NULL;
+	// setup material (assume it's bound)
+	virtual void setupData(const ShaderData* m) const {
+		// set texture data (if needed && possible)
+		int uLoc;
+		int nTexture = m->texture.size();
+		for (int i = 0; i < 4; i++) {
+			uLoc = UniformLoc::texture0 + i;
+			if (U_SET(uLoc) && nTexture > i) {
+				glActiveTexture(GL_TEXTURE0 + i);
+				//glEnable(GL_TEXTURE_2D);
+				m->texture[i]->bind();
+				glUniform1i(U_LOC(uLoc), i);
+			}
 		}
 
-		char* vsCorrected = new char[vsLen + 1];
-		memcpy(vsCorrected, vs, vsLen);
-		vsCorrected[vsLen] = 0;
-
-		delete[] vs;
-
-		size_t fsLen;
-		char* fs = readFileContent(fsFilename, &fsLen);
-
-		if (!fs) {
-			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error loading fragment shader source: %s", fsFilename);
-			delete[] vs;
-
-			return NULL;
+		// set color data (if possible)
+		uLoc = UniformLoc::material_diffuse;
+		if (U_SET(uLoc)) {
+			glUniform4fv(U_LOC(uLoc), 1, glm::value_ptr(m->diffuseColor));
 		}
 
-		char* fsCorrected = new char[fsLen + 1];
-		memcpy(fsCorrected, fs, fsLen);
-		fsCorrected[fsLen] = 0;
+		uLoc = UniformLoc::material_specular;
+		if (U_SET(uLoc)) {
+			glUniform4fv(U_LOC(uLoc), 1, glm::value_ptr(m->specularColor));
+		}
 
-		delete[] fs;
+		uLoc = UniformLoc::material_emission;
+		if (U_SET(uLoc)) {
+			glUniform4fv(U_LOC(uLoc), 1, glm::value_ptr(m->emissionColor));
+		}
 
-#ifdef DUMP_SHADER
-		SDL_Log(vsCorrected);
-		SDL_Log(fsCorrected);
-#endif
-
-		Shader* result = loadShaderFromSources(vsCorrected, (int)vsLen + 1, fsCorrected, (int)fsLen + 1);
-
-		delete[] vsCorrected;
-		delete[] fsCorrected;
-
-		return result;
+		uLoc = UniformLoc::material_shininess;
+		if (U_SET(uLoc)) {
+			glUniform1f(U_LOC(uLoc), m->shininess);
+		}
 	}
 };
 
