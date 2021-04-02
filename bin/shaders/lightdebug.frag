@@ -2,8 +2,8 @@
 precision mediump float;
 #endif
 
-uniform vec3 lightColor;
+uniform vec4 material_diffuse;
 
 void main() {
-	gl_FragColor = vec4(lightColor, 1.0);
+	gl_FragColor = material_diffuse;
 }

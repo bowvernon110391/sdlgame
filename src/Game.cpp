@@ -19,6 +19,7 @@
 #include "Shader.h"
 #include "Mesh.h"
 #include "Material.h"
+#include "ResourceManager.h"
 
 Game::Game() {
 	cam_horzRot = 30;
@@ -31,6 +32,7 @@ Game::~Game() {
 }
 
 void Game::onInit() {
+	srand(SDL_GetTicks());
 	initImGui();
 
 	m_renderer = (new Renderer)
@@ -45,92 +47,214 @@ void Game::onInit() {
 		)
 		->setViewport(0, 0, iWidth, iHeight);
 
-	Mesh* cube = Mesh::createUnitBox()->createBufferObjects();
-	meshes.push_back(cube);
+	// initalize managers
+	shaderMgr = new ResourceManager<Shader>(loadShader, "shaders");
+	shaderDataMgr = new ResourceManager<ShaderData>(loadBasicShaderData);
+	materialMgr = new ResourceManager<Material>(loadBasicMaterial);
+	matsetMgr = new ResourceManager<MaterialSet>(loadMaterialSet);
+	meshMgr = new ResourceManager<Mesh>(loadMesh, "meshes");
+	textureMgr = new ResourceManager<Texture2D>(loadTexture, "textures");
 
-	Shader* cubeShader = Shader::fromFile("shaders/box.vert", "shaders/box.frag");
-	shaders.push_back(cubeShader);
+	// add a cube manually
+	meshMgr->put("cube", Mesh::createUnitBox()->createBufferObjects());
+	meshMgr->load("weirdcube.bcf");
 
-	Texture2D* tex = Texture2D::loadFromFile("textures/crate.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT, true);
-	textures.push_back(tex);
-	tex = Texture2D::loadFromFile("textures/cliff.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT, true);
-	textures.push_back(tex);
-	tex = Texture2D::loadFromFile("textures/grass.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT, true);
-	textures.push_back(tex);
-	tex = Texture2D::loadFromFile("textures/gravel.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT, true);
-	textures.push_back(tex);
+	// load a shader
+	shaderMgr->load("box");
+	shaderMgr->load("lightmap");
 
-	ShaderData* shData = ((new ShaderData())
-		->fillTextureSlot(0, textures[0])
-		->setShininess(glm::linearRand(0.0f, 255.0f))
-		);
-	shaderDatas.push_back(shData);
-	shData = ((new ShaderData())
-		->fillTextureSlot(0, textures[1])
-		->setShininess(glm::linearRand(0.0f, 255.0f))
-		);
-	shaderDatas.push_back(shData);
-	shData = ((new ShaderData())
-		->fillTextureSlot(0, textures[2])
-		->setShininess(glm::linearRand(0.0f, 255.0f))
-		);
-	shaderDatas.push_back(shData);
-	shData = ((new ShaderData())
-		->fillTextureSlot(0, textures[3])
-		->setShininess(glm::linearRand(0.0f, 255.0f))
-		);
-	shaderDatas.push_back(shData);
+	// load textures
+	textureMgr->load("cliff.jpg");
+	textureMgr->load("grass.jpg");
+	textureMgr->load("gravel.jpg");
+	textureMgr->load("crate.jpg");
+	textureMgr->load("road.png");
 
-	Material* mat = new Material(cubeShader, shaderDatas[0]);
-	mats.push_back(mat);
-	mat = new Material(cubeShader, shaderDatas[1]);
-	mats.push_back(mat);
-	mat = new Material(cubeShader, shaderDatas[2]);
-	mats.push_back(mat);
-	mat = new Material(cubeShader, shaderDatas[3]);
-	mats.push_back(mat);
+	// add shader data
+	shaderDataMgr->load("cliff")
+		->fillTextureSlot(0, textureMgr->get("cliff.jpg"))
+		->setShininess(10.0f)
+		->setSpecular(glm::vec4(glm::vec3(0.4f), 1.0f));
+	shaderDataMgr->load("grass")
+		->fillTextureSlot(0, textureMgr->get("grass.jpg"))
+		->setShininess(5.f)
+		->setSpecular(glm::vec4(glm::vec3(0.2f), 1.0f));
+	shaderDataMgr->load("gravel")
+		->fillTextureSlot(0, textureMgr->get("gravel.jpg"))
+		->setShininess(82.0f)
+		->setSpecular(glm::vec4(0.8f, 0.6f, 0.7f, 1.0f));
+	shaderDataMgr->load("crate")
+		->fillTextureSlot(0, textureMgr->get("crate.jpg"))
+		->setShininess(8.0f)
+		->setSpecular(glm::vec4(glm::vec3(0.5f), 1.0f));
 
-	MaterialSet* cms = MaterialSet::create()->addMaterial(mats[0]);
-	matsets.push_back(cms);
-	cms = MaterialSet::create()->addMaterial(mats[1]);
-	matsets.push_back(cms);
-	cms = MaterialSet::create()->addMaterial(mats[2]);
-	matsets.push_back(cms);
-	cms = MaterialSet::create()->addMaterial(mats[3]);
-	matsets.push_back(cms);
+	// add material
+	materialMgr->load("box_cliff")
+		->withShader(shaderMgr->get("box"))
+		->withData(shaderDataMgr->get("cliff"));
+	materialMgr->load("box_grass")
+		->withShader(shaderMgr->get("box"))
+		->withData(shaderDataMgr->get("grass"));
+	materialMgr->load("box_gravel")
+		->withShader(shaderMgr->get("box"))
+		->withData(shaderDataMgr->get("gravel"));
+	materialMgr->load("box_crate")
+		->withShader(shaderMgr->get("box"))
+		->withData(shaderDataMgr->get("crate"));
 
-	// now create some random cube?
-	srand(SDL_GetTicks());
-	for (int i = 0; i < 20; i++) {
+	// now add material set (a combination of material basically)
+	matsetMgr->load("box_cliff")
+		->addMaterial(materialMgr->get("box_cliff"));
+	matsetMgr->load("box_grass")
+		->addMaterial(materialMgr->get("box_grass"));
+	matsetMgr->load("box_gravel")
+		->addMaterial(materialMgr->get("box_gravel"));
+	matsetMgr->load("box_crate")
+		->addMaterial(materialMgr->get("box_crate"));
+
+	// now create random objects
+	for (int i = 0; i < 30; i++) {
+		glm::vec3 pos = glm::sphericalRand(8.0f);
+		pos.y *= 0.2f;
+		pos.y += 3.5f;
 		BaseRenderObjectData* rod = (new RenderObjectData())
-			->usePosition(glm::ballRand(5.0f))
-			->useRotation( glm::angleAxis(
+			->usePosition(pos)
+			->useRotation(glm::angleAxis(
 				glm::radians(
 					glm::gaussRand(0.0f, 45.0f)
 				), glm::normalize(glm::vec3(
 					glm::gaussRand(0.0f, 1.0f),
 					glm::gaussRand(0.0f, 1.0f),
 					glm::gaussRand(0.0f, 1.0f)
-				)) ) 
+				)))
 			);
 
-		BaseRenderObject* box = new BaseRenderObject(cube, rod, matsets[rand() % matsets.size()]);
-		renderObjs.push_back(box);
+		renderObjs.push_back(new BaseRenderObject(meshMgr->getRandom(), rod, matsetMgr->getRandom()));
 	}
+
+	// spawn the level
+	renderObjs.push_back(new BaseRenderObject(
+		meshMgr->load("export_test.bcf"),
+		new RenderObjectData(),
+		matsetMgr->load("scene_matset")
+		->addMaterial(materialMgr->load("scene_mat")
+			->withShader(shaderMgr->get("box"))
+			->withData(shaderDataMgr->load("island")
+				->fillTextureSlot(0, textureMgr->get("road.png"))
+				->setSpecular(glm::vec4(0.2, 0.2, 0.2, 1.0))
+				->setShininess(2.5f)
+			)
+		)
+	));
+
+	//Mesh* cube = Mesh::createUnitBox()->createBufferObjects();
+	//meshes.push_back(cube);
+
+	//Shader* cubeShader = Shader::fromFile("shaders/box.vert", "shaders/box.frag");
+	//shaders.push_back(cubeShader);
+
+	//Texture2D* tex = Texture2D::loadFromFile("textures/crate.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT, true);
+	//textures.push_back(tex);
+	//tex = Texture2D::loadFromFile("textures/cliff.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT, true);
+	//textures.push_back(tex);
+	//tex = Texture2D::loadFromFile("textures/grass.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT, true);
+	//textures.push_back(tex);
+	//tex = Texture2D::loadFromFile("textures/gravel.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT, true);
+	//textures.push_back(tex);
+
+	//ShaderData* shData = ((new ShaderData())
+	//	->fillTextureSlot(0, textures[0])
+	//	->setShininess(glm::linearRand(0.0f, 255.0f))
+	//	);
+	//shaderDatas.push_back(shData);
+	//shData = ((new ShaderData())
+	//	->fillTextureSlot(0, textures[1])
+	//	->setShininess(glm::linearRand(0.0f, 255.0f))
+	//	);
+	//shaderDatas.push_back(shData);
+	//shData = ((new ShaderData())
+	//	->fillTextureSlot(0, textures[2])
+	//	->setShininess(glm::linearRand(0.0f, 255.0f))
+	//	);
+	//shaderDatas.push_back(shData);
+	//shData = ((new ShaderData())
+	//	->fillTextureSlot(0, textures[3])
+	//	->setShininess(glm::linearRand(0.0f, 255.0f))
+	//	);
+	//shaderDatas.push_back(shData);
+
+	//Material* mat = new Material(cubeShader, shaderDatas[0]);
+	//mats.push_back(mat);
+	//mat = new Material(cubeShader, shaderDatas[1]);
+	//mats.push_back(mat);
+	//mat = new Material(cubeShader, shaderDatas[2]);
+	//mats.push_back(mat);
+	//mat = new Material(cubeShader, shaderDatas[3]);
+	//mats.push_back(mat);
+
+	//MaterialSet* cms = MaterialSet::create()->addMaterial(mats[0]);
+	//matsets.push_back(cms);
+	//cms = MaterialSet::create()->addMaterial(mats[1]);
+	//matsets.push_back(cms);
+	//cms = MaterialSet::create()->addMaterial(mats[2]);
+	//matsets.push_back(cms);
+	//cms = MaterialSet::create()->addMaterial(mats[3]);
+	//matsets.push_back(cms);
+
+	//// now create some random cube?
+	//srand(SDL_GetTicks());
+	//for (int i = 0; i < 20; i++) {
+	//	BaseRenderObjectData* rod = (new RenderObjectData())
+	//		->usePosition(glm::ballRand(5.0f))
+	//		->useRotation( glm::angleAxis(
+	//			glm::radians(
+	//				glm::gaussRand(0.0f, 45.0f)
+	//			), glm::normalize(glm::vec3(
+	//				glm::gaussRand(0.0f, 1.0f),
+	//				glm::gaussRand(0.0f, 1.0f),
+	//				glm::gaussRand(0.0f, 1.0f)
+	//			)) ) 
+	//		);
+
+	//	BaseRenderObject* box = new BaseRenderObject(cube, rod, matsets[rand() % matsets.size()]);
+	//	renderObjs.push_back(box);
+	//}
 }
 
 void Game::onDestroy() {
+	// debug first
+	SDL_Log("++SHADERS++\n");
+	shaderMgr->printDebug();
+	SDL_Log("++SHADERS_DATA++\n");
+	shaderDataMgr->printDebug();
+	SDL_Log("++MATERIALS++\n");
+	materialMgr->printDebug();
+	SDL_Log("++MATERIAL_SETS++\n");
+	matsetMgr->printDebug();
+	SDL_Log("++MESHES++\n");
+	meshMgr->printDebug();
+	SDL_Log("++TEXTURES++\n");
+	textureMgr->printDebug();
+
 	destroyImGui();
 	// delete renderer
 	delete m_renderer;
+	// delete resource managers
+	delete shaderMgr;
+	delete shaderDataMgr;
+	delete meshMgr;
+	delete materialMgr;
+	delete matsetMgr;
+	delete textureMgr;
 
-	for (auto it = shaders.begin(); it != shaders.end(); ++it) delete* it;
+	// delete render objects (unmanaged)
 	for (auto it = renderObjs.begin(); it != renderObjs.end(); ++it) delete* it;
+	/*for (auto it = shaders.begin(); it != shaders.end(); ++it) delete* it;
 	for (auto it = meshes.begin(); it != meshes.end(); ++it) delete* it;
 	for (auto it = shaderDatas.begin(); it != shaderDatas.end(); ++it) delete* it;
 	for (auto it = textures.begin(); it != textures.end(); ++it) delete* it;
 	for (auto it = mats.begin(); it != mats.end(); ++it) delete* it;
-	for (auto it = matsets.begin(); it != matsets.end(); ++it) delete* it;
+	for (auto it = matsets.begin(); it != matsets.end(); ++it) delete* it;*/
 
 }
 

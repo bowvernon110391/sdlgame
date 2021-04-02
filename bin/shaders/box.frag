@@ -14,18 +14,20 @@ uniform vec4 sun_specular_color;
 
 // material data?
 uniform float material_shininess;
+uniform vec4 material_specular;
 
 vec4 computeFinalColor(vec4 baseDiffuse) {
-	float dp = max(0.0, dot(vNormal, vSunDirection));
+	vec3 n_normal = normalize(vNormal);
+	float dp = max(0.0, dot(n_normal, vSunDirection));
 	
 	// half vector of sun?
 	vec3 halfVec = normalize((vSunDirection + vec3(0.0,0.0,1.0)) * 0.5);
 	
 	// specular term
-	float spec = pow( max(0.0, dot(halfVec, vNormal)), material_shininess );
+	float spec = pow( max(0.0, dot(halfVec, n_normal)), material_shininess );
 	
 	// final is (amb + diff) * color + spec * sunspec
-	vec4 specularTerm = sun_specular_color * spec;
+	vec4 specularTerm = (sun_specular_color * spec) * material_specular;
 	vec4 finalColor = (scene_ambient_color + (sun_diffuse_color * dp) ) * baseDiffuse + specularTerm;
 	return finalColor;
 }

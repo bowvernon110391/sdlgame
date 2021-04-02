@@ -162,6 +162,7 @@
     <ClCompile Include="..\src\imgui\imgui_impl_sdl.cpp" />
     <ClCompile Include="..\src\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\src\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\src\Loader.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Mesh.cpp" />
     <ClCompile Include="..\src\Renderer.cpp" />
@@ -188,6 +189,7 @@
     <ClInclude Include="..\src\Light.h" />
     <ClInclude Include="..\src\Material.h" />
     <ClInclude Include="..\src\RenderObjectData.h" />
+    <ClInclude Include="..\src\ResourceManager.h" />
     <ClInclude Include="..\src\SceneData.h" />
     <ClInclude Include="..\src\ShaderData.h" />
     <ClInclude Include="..\src\Mesh.h" />

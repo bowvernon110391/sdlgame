@@ -1,5 +1,5 @@
 // scene config
-uniform mat4 matMVP;
+uniform mat4 m_model_view_projection;
 
 attribute vec3 position;
 attribute vec2 uv;
@@ -12,5 +12,5 @@ void main() {
 	vTexcoord = uv;
 	vTexcoord2 = uv2;
 		
-    gl_Position = matMVP * vec4(position, 1.0);
+    gl_Position = m_model_view_projection * vec4(position, 1.0);
 }

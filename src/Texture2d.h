@@ -48,6 +48,18 @@ public:
 		glBindTexture(GL_TEXTURE_2D, texId);
 	}
 
+	Texture2D* withFilter(GLint minFilter, GLint magFilter) {
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);
+		return this;
+	}
+
+	Texture2D* withWrap(GLint wrapS, GLint wrapT) {
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
+		return this;
+	}
+
 	void destroyHandle() {
 		if (texId) {
 			glDeleteTextures(1, &texId);
@@ -55,12 +67,14 @@ public:
 	}
 
 	static Texture2D* loadFromFile(const char* filename,
+		bool useMipmap = false,
 		GLint minFilter = GL_TEXTURE_MIN_FILTER, GLint magFilter = GL_TEXTURE_MAG_FILTER,
-		GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE, bool useMipmap = false);
+		GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE);
 
 	static Texture2D* loadFromMemory(const char* buf, int bufSize,
+		bool useMipmap = false,
 		GLint minFilter = GL_TEXTURE_MIN_FILTER, GLint magFilter = GL_TEXTURE_MAG_FILTER,
-		GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE, bool useMipmap = false);
+		GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE);
 };
 
 #endif

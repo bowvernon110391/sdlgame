@@ -1,0 +1,162 @@
+#pragma once
+#include <unordered_map>
+#include <string>
+#include <iostream>
+#include <assert.h>
+
+#define QUOTE(X) #X
+
+/// <summary>
+/// the template of resource manager class. Each resource must have:
+/// - a name to identify with
+/// - probably a base folder
+/// the resource manager also could use a different loader function
+/// </summary>
+/// <typeparam name="Resource"></typeparam>
+using namespace std;
+
+template <typename Resource>
+class ResourceManager {
+public:
+	typedef Resource* (* PFNLOADER)(const char* name);
+
+	// this is for file resource
+	ResourceManager(PFNLOADER defaultLoader, const string& folder = "", Resource* defaultRes = nullptr) {
+		this->baseFolder = folder;
+		this->loaderFn = defaultLoader;
+		this->nullResource = defaultRes;
+
+		assert(defaultLoader != nullptr);
+
+		// if no default res, make our own
+		if (!nullResource) {
+			nullResource = new Resource();
+		}
+
+		currentLoader = loaderFn;
+	}
+	virtual ~ResourceManager() {
+		for (auto ptrToRes : resources) {
+			delete ptrToRes.second;
+		}
+		delete nullResource;
+	}
+
+	Resource* withLoader(PFNLOADER fn) {
+		currentLoader = fn;
+	}
+	Resource* load(const char* name) {
+		// load and assign a name on it
+		string fqName = baseFolder + "/" + string(name);
+		// load a resource using the current loader function
+		assert(this->currentLoader != nullptr);
+		Resource* res = this->currentLoader(fqName.c_str());
+		assert(res != nullptr);
+#ifdef _DEBUG
+		cout << "Loading resource(" << name << " as " << fqName << "), got " << hex << res << dec << endl;
+#endif
+		// put it in the container
+		resources.insert(make_pair(string(name), res));
+
+		// reset default loader
+		currentLoader = loaderFn;
+
+		// return it
+		return res;
+	}
+
+	/// <summary>
+	/// just return what's loaded
+	/// </summary>
+	/// <param name="name"></param>
+	/// <returns></returns>
+	Resource* get(const char* name) {
+		Resource* r = resources[string(name)];
+		if (!r) {
+			return nullResource;
+		}
+		return r;
+	}
+
+	Resource* getRandom() {
+		auto it = resources.begin();
+		advance(it, rand() % resources.size());
+		return it->second;
+	}
+
+	/// <summary>
+	/// This put the resource in the manager, with an assigned name
+	/// WARNING: WILL REPLACE WHAT'S IN THERE IF THERE IS A NAME CLASH
+	/// </summary>
+	/// <param name="name"></param>
+	/// <param name="r"></param>
+	/// <returns></returns>
+	Resource* put(const char* name, Resource* r) {
+		// make sure we don't put garbage
+		assert(r != nullptr);
+
+		resources.insert(make_pair(string(name), r));
+
+		return r;
+	}
+
+	/// <summary>
+	/// This will remove resource by value
+	/// </summary>
+	/// <param name="r"></param>
+	bool remove(Resource* r, bool doDeletion = true) {
+		auto it = resources.begin();
+		while (it != resources.end()) {
+			if (it.second == r) {
+				delete it->second;
+				resources.erase(it);
+				return true;
+			}
+			it++;
+		}
+		return false;
+	}
+
+	/// <summary>
+	/// remove by key
+	/// </summary>
+	/// <param name="name"></param>
+	/// <returns></returns>
+	bool remove(const char* name) {
+		auto it = resources.find(string(name));
+		if (it != resources.end()) {
+			delete it->second;
+			resources.erase(it);
+			return true;
+		}
+		return false;
+	}
+
+	/// <summary>
+	/// just return how much we stored now
+	/// </summary>
+	/// <returns></returns>
+	size_t size() {
+		return resources.size();
+	}
+
+	/// <summary>
+	/// print debug contents
+	/// </summary>
+	void printDebug() {
+		cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
+		cout << "DEBUG_RESOURCE_CONTENTS: (" << resources.size() << ") ITEMS" << endl;
+		int cnt = 0;
+		for (pair<string, Resource*> e : resources) {
+			cout << QUOTE(Resource) << "[" << ++cnt << "] : name(" << e.first << ") @ " << hex << e.second << endl;
+		}
+		cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
+	}
+protected:
+	string baseFolder;
+	PFNLOADER loaderFn, currentLoader;
+	unordered_map<string, Resource*> resources;
+
+	// a null resource to avoid error?
+	Resource* nullResource;
+};

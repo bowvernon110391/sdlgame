@@ -11,8 +11,9 @@
 #include "stb/stb_image_write.h"
 
 Texture2D* Texture2D::loadFromFile(const char* filename,
+	bool useMipmap,
 	GLint minFilter, GLint magFilter,
-	GLint wrapS, GLint wrapT, bool useMipmap) {
+	GLint wrapS, GLint wrapT) {
 #ifdef _DEBUG
 	SDL_Log("TEXTURE_LOAD: %s (%d, %d, %d %d)", filename, minFilter, magFilter, wrapS, wrapT);
 #endif // _DEBUG
@@ -20,7 +21,7 @@ Texture2D* Texture2D::loadFromFile(const char* filename,
 	size_t bufSize;
 	const char* buf = Helper::readFileContent(filename, &bufSize);
 
-	Texture2D* tex = loadFromMemory(buf, bufSize, minFilter, magFilter, wrapS, wrapT, useMipmap);
+	Texture2D* tex = loadFromMemory(buf, bufSize, useMipmap, minFilter, magFilter, wrapS, wrapT);
 	if (tex) {
 		delete[] buf;
 	}
@@ -29,8 +30,9 @@ Texture2D* Texture2D::loadFromFile(const char* filename,
 }
 
 Texture2D* Texture2D::loadFromMemory(const char* buf, int bufSize,
+	bool useMipmap,
 	GLint minFilter, GLint magFilter,
-	GLint wrapS, GLint wrapT, bool useMipmap) {
+	GLint wrapS, GLint wrapT) {
 	// first, check the buffer?
 	if (buf && bufSize) {
 		// init libspng context

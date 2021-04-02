@@ -15,9 +15,12 @@
 #define SU_SET(s, x) (SU_LOC(x) >= 0)
 
 //#define DEBUG_SHADER
+template<typename Resource>
+class ResourceManager;
 
 class Shader
 {
+	friend class ResourceManager<Shader>;
 public:
 	enum UniformLoc {
 #define DECLARE_ENUM(x) x,
@@ -458,7 +461,7 @@ public:
 		// set texture data (if needed && possible)
 		int uLoc;
 		int nTexture = m->texture.size();
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < glm::min(nTexture, 4); i++) {
 			uLoc = UniformLoc::texture0 + i;
 			if (U_SET(uLoc) && nTexture > i) {
 				glActiveTexture(GL_TEXTURE0 + i);

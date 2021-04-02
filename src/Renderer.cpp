@@ -235,6 +235,38 @@ void Renderer::setupVertexArray(const Shader* shd, const Mesh* m)
 		glVertexAttribPointer(a_loc, 2, GL_FLOAT, false, m->strideLength, (void*)offset);
 	}
 	offset += ((m->vertexFormat & VF_UV) >> 2) * sizeof(float) * 2;
+
+	// tangent, bitangent
+	if (m->vertexFormat & VF_TANGENT) {
+		// tangent first
+		a_loc = shd->getAttribLocation(Shader::AttribLoc::tangent);
+		if (a_loc >= 0) {
+#ifdef DEBUG_VA
+			SDL_Log("VERTEX_ARRAY[%d]: TANGENT @ %d bytes\n", a_loc, offset);
+#endif // DEBUG
+			glVertexAttribPointer(a_loc, 3, GL_FLOAT, false, m->strideLength, (void*)offset);
+		}
+
+		// then bitangent
+		a_loc = shd->getAttribLocation(Shader::AttribLoc::bitangent);
+		if (a_loc >= 0) {
+#ifdef DEBUG_VA
+			SDL_Log("VERTEX_ARRAY[%d]: BITANGENT @ %d bytes\n", a_loc, offset+sizeof(float)*3);
+#endif // DEBUG
+			glVertexAttribPointer(a_loc, 3, GL_FLOAT, false, m->strideLength, (void*)(offset + sizeof(float) * 3));
+		}
+	}
+	offset += ((m->vertexFormat & VF_TANGENT) >> 3) * sizeof(float) * 6;
+
+	// second uv
+	a_loc = shd->getAttribLocation(Shader::AttribLoc::uv2);
+	if ((m->vertexFormat & VF_UV2) && a_loc >= 0) {
+#ifdef DEBUG_VA
+		SDL_Log("VERTEX_ARRAY[%d]: UV2 @ %d bytes\n", a_loc, offset);
+#endif // DEBUG
+		glVertexAttribPointer(a_loc, 2, GL_FLOAT, false, m->strideLength, (void*)offset);
+	}
+	offset += ((m->vertexFormat & VF_UV2) >> 4) * sizeof(float) * 2;
 }
 
 void Renderer::draw(const std::vector<BaseRenderObject*>& data) {

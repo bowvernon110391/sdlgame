@@ -10,6 +10,8 @@ class RenderObjectData : public BaseRenderObjectData {
 public:
 	RenderObjectData() {
 		scale = glm::vec3(1, 1, 1);
+		pos = glm::vec3(0, 0, 0);
+		rot = glm::quat(1,0,0,0);
 	}
 
 	RenderObjectData* usePosition(const glm::vec3& p) { pos = p; return this; }
