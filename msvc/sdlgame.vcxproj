@@ -171,6 +171,7 @@
     <ClCompile Include="MaterialSet.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\AABB.h" />
     <ClInclude Include="..\src\App.h" />
     <ClInclude Include="..\src\BaseRenderObject.h" />
     <ClInclude Include="..\src\bullet\btBulletCollisionCommon.h" />

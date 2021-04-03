@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include "Helper.h"
+#include "AABB.h"
 #include <stdio.h>
 
 #define DEBUG_BCF   1
@@ -45,6 +46,8 @@ public:
 	uint32_t ibo;
 
     char name[32];
+
+    AABB boundingBox;
 
     Mesh():
 	strideLength(12), vertexFormat(VF_XYZ), vbo(0), ibo(0), vertexBuffer(0), indexBuffer(0)
@@ -207,6 +210,7 @@ public:
     # 2b : sub_mesh_count
     # 32b: objname
     # 2b : total_tris
+    # 24b: bounding_box (6 float)
     # --SUB_MESH_DATA_---
     # { 32b: material_name, 2b: begin_at, 2b: total_tri }
     # { vertex_buffer }
@@ -268,6 +272,12 @@ public:
         // 2b: total_tris
         int numTris = *(unsigned short*)ptr;
         ptr += 2;
+
+        // 24b: bounding box
+        float* bbox = (float*)ptr;
+        ptr += 24;
+        m->boundingBox.min = glm::vec3(bbox[0], bbox[1], bbox[2]);
+        m->boundingBox.max = glm::vec3(bbox[3], bbox[4], bbox[5]);
 
 #ifdef _DEBUG
         printf("BCF_TOTAL_TRIS: %d\n", numTris);
