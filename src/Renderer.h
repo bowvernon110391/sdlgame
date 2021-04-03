@@ -1,7 +1,9 @@
 #pragma once
 
 #include <vector>
+#include <glm/glm.hpp>
 
+class AABB;
 class RenderQueueItem;
 class BaseRenderObject;
 class MaterialSet;	// array of Material
@@ -27,6 +29,9 @@ public:
 
 	Camera* getCamera() const { return m_camera;  }
 	SceneData* getSceneData() const { return m_scene; }
+	
+	bool drawDebug;
+	glm::vec4 debugColor;
 protected:
 	Camera *m_camera;
 	SceneData *m_scene;
@@ -37,6 +42,16 @@ protected:
 	// tracker
 	Shader* lastShader;
 	ShaderData* lastShaderData;
+
+	// for debugging?
+	uint32_t vboDebug, iboDebug;
+	std::vector<float> vbDebug;
+	std::vector<unsigned short> ibDebug;
+	Shader* debugShader;
+
+	void initDebugData();
+	void generateDebugData(const AABB& b);
+	void destroyDebugData();
 
 	void draw(const BaseRenderObject& ro);
 	void setupVertexState(const Shader* shd);

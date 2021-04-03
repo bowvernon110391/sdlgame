@@ -163,6 +163,9 @@ public:
               half, -half,  half, 0, -1, 0,  1, 1,
              -half, -half,  half, 0, -1, 0,  0, 1,
         };
+
+        m->boundingBox.min = glm::vec3(-half, -half, -half);
+        m->boundingBox.max = glm::vec3(half, half, half);
         
         /*std::vector<float> &v = m->vertBuffer;
         v.insert(v.end(), verts, verts+(sizeof(verts)/sizeof(float)));*/

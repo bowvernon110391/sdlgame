@@ -19,6 +19,8 @@ Renderer::Renderer() {
 	m_camera = 0;
 	m_scene = 0;
 	lastAttribFlags = 0;
+
+	initDebugData();
 }
 
 Renderer::~Renderer() {
@@ -31,6 +33,110 @@ Renderer::~Renderer() {
 		delete m_scene;
 		m_scene = 0;
 	}
+
+	destroyDebugData();
+}
+
+void Renderer::initDebugData() {
+	// set color
+	debugColor = glm::vec4(1.0, 0.0, 0.0, 0.1);
+	// generate cube, with size 1 perhaps?
+	// genereat buffers
+	glGenBuffers(1, &vboDebug);
+	glGenBuffers(1, &iboDebug);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboDebug);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboDebug);
+
+	// fill our vb
+	vbDebug.clear();
+	ibDebug.clear();
+
+	vbDebug.resize(24);
+	ibDebug.resize(36);
+
+	float half = 0.5f;
+	float verts[] = {
+		// xyz uv
+		// front
+		-half, -half, half,	// 0
+		 half, -half, half,	// 1
+		 half,  half, half,	// 2
+		-half,  half, half,	// 3
+
+		// back
+		 half, -half,-half,	// 4
+		-half, -half,-half,	// 5
+		-half,  half,-half,	// 6
+		 half,  half,-half,	// 7
+	};
+
+	// index em
+	uint16_t indices[36] = {
+		0, 1, 2, 0, 2, 3,   // front
+		4, 5, 6, 4, 6, 7,   // back
+		1, 4, 2, 2, 4, 7,	// right
+		5, 0, 3, 5, 3, 6,	// left
+		3, 2, 7, 3, 7, 6,	// top
+		0, 5, 4, 0, 4, 1	// bottom
+	};
+
+	vbDebug.insert(vbDebug.end(), &verts[0], &verts[24]);
+	ibDebug.insert(ibDebug.end(), &indices[0], &indices[36]);
+
+	glBufferData(GL_ARRAY_BUFFER, vbDebug.size() * sizeof(float), &vbDebug[0], GL_STREAM_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, ibDebug.size() * sizeof(unsigned short), &ibDebug[0], GL_STREAM_DRAW);
+
+	// init shader
+	const char* vs = "\
+		attribute vec3 position; \n\
+		uniform mat4 m_model_view_projection; \n\
+		varying vec3 col; \n\
+		void main() { \n\
+			col = max(position, vec3(0.1,0.1,0.1)); \n\
+			gl_Position = m_model_view_projection * vec4(position, 1.0); \n\
+		} \n\
+		";
+
+	const char* fs = "\
+		uniform vec4 material_diffuse; \n\
+		varying vec3 col; \n\
+		void main() { \
+			gl_FragColor = vec4(col, 1.0) * material_diffuse; \n\
+		} \n\
+		";
+
+	debugShader = Shader::fromMemory(vs, strlen(vs), fs, strlen(fs));
+}
+
+void Renderer::generateDebugData(const AABB& b) {
+	// just recreate the vertbuffer
+	assert(vbDebug.size() != 24);
+
+	const glm::vec3& min = b.min;
+	const glm::vec3& max = b.max;
+
+	// make sure to follow the format
+	vbDebug[0] = min.x;	vbDebug[1] = min.y; vbDebug[2] = max.z;
+	vbDebug[3] = max.x;	vbDebug[4] = min.y; vbDebug[5] = max.z;
+	vbDebug[6] = max.x;	vbDebug[7] = max.y; vbDebug[8] = max.z;
+	vbDebug[9] = min.x;	vbDebug[10] = max.y; vbDebug[11] = max.z;
+	
+	vbDebug[12] = max.x;	vbDebug[13] = min.y; vbDebug[14] = min.z;
+	vbDebug[15] = min.x;	vbDebug[16] = min.y; vbDebug[17] = min.z;
+	vbDebug[18] = min.x;	vbDebug[19] = max.y; vbDebug[20] = min.z;
+	vbDebug[21] = max.x;	vbDebug[22] = max.y; vbDebug[23] = min.z;
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboDebug);
+	glBufferData(GL_ARRAY_BUFFER, vbDebug.size() * sizeof(float), &vbDebug[0], GL_STREAM_DRAW);
+}
+
+void Renderer::destroyDebugData() {
+	vbDebug.clear();
+	ibDebug.clear();
+	glDeleteBuffers(1, &vboDebug);
+	glDeleteBuffers(1, &iboDebug);
+	delete debugShader;
 }
 
 Renderer* Renderer::useCamera(Camera* cam) {
@@ -274,10 +380,19 @@ void Renderer::draw(const std::vector<BaseRenderObject*>& data) {
 	if (m_scene && m_camera) {
 		m_scene->updateLightsUniformData(m_camera->getPosition());
 	}
+
+	// 1st pass, the color + Depth pass
 	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+	glDepthMask(GL_TRUE);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	// prepare pass state?
 	// first, gotta build a queue, then sort them all?
 	// nope, just iterate shit
+
+	// enable depth write
+
 	auto it = data.begin();
 	while (it != data.end()) {
 		BaseRenderObject* obj = *it;
@@ -286,6 +401,63 @@ void Renderer::draw(const std::vector<BaseRenderObject*>& data) {
 
 		// increment
 		++it;
+	}
+
+	// 2nd pass, debug (only active sometime)
+	glDepthMask(GL_FALSE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	// draw debug too?
+	if (drawDebug) {
+		AABB tmp;
+		glm::mat4 mvp;
+		//glm::vec4 boxColor = glm::vec4(1.0f, 1.0f, 0.0f, 0.1f);
+
+		int a_pos = debugShader->getAttribLocation(Shader::AttribLoc::position);
+		assert(a_pos >= 0);
+
+		// compute mvp (aabb already in world space)
+		mvp = m_camera->getProjectionMatrix() * m_camera->getViewMatrix();
+
+		// bind buffer and shader
+		debugShader->bind();
+
+		// set uniforms
+		glUniformMatrix4fv(
+			debugShader->getUniformLocation(Shader::UniformLoc::m_model_view_projection), 
+			1, 
+			false, 
+			glm::value_ptr(mvp));
+
+		glBindBuffer(GL_ARRAY_BUFFER, vboDebug);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboDebug);
+
+		// enable vertex position?
+		glEnableVertexAttribArray(a_pos);
+
+		auto it = data.begin();
+		while (it != data.end()) {
+			// grab our bbox onleh
+			BaseRenderObject* obj = *it;
+
+			glUniform4fv(
+				debugShader->getUniformLocation(Shader::UniformLoc::material_diffuse),
+				1,
+				glm::value_ptr(debugColor));
+
+			if (obj->data->getBoundingBox(tmp)) {
+				// it can give us bounding box, now draw it
+				generateDebugData(tmp);
+
+				// point our data to updated buffer?
+				glVertexAttribPointer(a_pos, 3, GL_FLOAT, false, 3 * sizeof(float), 0);
+
+				// draw call
+				glDrawElements(GL_TRIANGLES, ibDebug.size(), GL_UNSIGNED_SHORT, 0);
+			}
+
+			++it;
+		}
 	}
 }
 

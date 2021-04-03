@@ -20,6 +20,19 @@ public:
 		max = glm::max(max, b.max);
 	}
 
+	// expand by vector
+	void expand(const glm::vec3& v) {
+		if (v.x > 0) max.x += v.x; else min.x += v.x;
+		if (v.y > 0) max.y += v.y; else min.y += v.y;
+		if (v.z > 0) max.z += v.z; else min.z += v.z;
+	}
+
+	// expand by a constant value (fatten it)
+	void expand(float f) {
+		min += glm::vec3(-f, -f, -f);
+		max += glm::vec3(f, f, f);
+	}
+
 	// surface area of AABB
 	float area() {
 		glm::vec3 d = max - min;

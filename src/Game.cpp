@@ -113,7 +113,7 @@ void Game::onInit() {
 		->addMaterial(materialMgr->get("box_crate"));
 
 	// now create random objects
-	for (int i = 0; i < 30; i++) {
+	for (int i = 0; i < 13; i++) {
 		glm::vec3 pos = glm::sphericalRand(8.0f);
 		pos.y *= 0.2f;
 		pos.y += 3.5f;
@@ -129,13 +129,15 @@ void Game::onInit() {
 				)))
 			);
 
-		renderObjs.push_back(new BaseRenderObject(meshMgr->getRandom(), rod, matsetMgr->getRandom()));
+		renderObjs.push_back(
+			new BaseRenderObject(meshMgr->getRandom(), rod, matsetMgr->getRandom())
+		);
 	}
 
 	// spawn the level
 	renderObjs.push_back(new BaseRenderObject(
 		meshMgr->load("export_test.bcf"),
-		new RenderObjectData(),
+		(new RenderObjectData())->updateBBox(),
 		matsetMgr->load("scene_matset")
 		->addMaterial(materialMgr->load("scene_mat")
 			->withShader(shaderMgr->get("box"))
@@ -146,79 +148,6 @@ void Game::onInit() {
 			)
 		)
 	));
-
-	//Mesh* cube = Mesh::createUnitBox()->createBufferObjects();
-	//meshes.push_back(cube);
-
-	//Shader* cubeShader = Shader::fromFile("shaders/box.vert", "shaders/box.frag");
-	//shaders.push_back(cubeShader);
-
-	//Texture2D* tex = Texture2D::loadFromFile("textures/crate.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT, true);
-	//textures.push_back(tex);
-	//tex = Texture2D::loadFromFile("textures/cliff.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT, true);
-	//textures.push_back(tex);
-	//tex = Texture2D::loadFromFile("textures/grass.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT, true);
-	//textures.push_back(tex);
-	//tex = Texture2D::loadFromFile("textures/gravel.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT, true);
-	//textures.push_back(tex);
-
-	//ShaderData* shData = ((new ShaderData())
-	//	->fillTextureSlot(0, textures[0])
-	//	->setShininess(glm::linearRand(0.0f, 255.0f))
-	//	);
-	//shaderDatas.push_back(shData);
-	//shData = ((new ShaderData())
-	//	->fillTextureSlot(0, textures[1])
-	//	->setShininess(glm::linearRand(0.0f, 255.0f))
-	//	);
-	//shaderDatas.push_back(shData);
-	//shData = ((new ShaderData())
-	//	->fillTextureSlot(0, textures[2])
-	//	->setShininess(glm::linearRand(0.0f, 255.0f))
-	//	);
-	//shaderDatas.push_back(shData);
-	//shData = ((new ShaderData())
-	//	->fillTextureSlot(0, textures[3])
-	//	->setShininess(glm::linearRand(0.0f, 255.0f))
-	//	);
-	//shaderDatas.push_back(shData);
-
-	//Material* mat = new Material(cubeShader, shaderDatas[0]);
-	//mats.push_back(mat);
-	//mat = new Material(cubeShader, shaderDatas[1]);
-	//mats.push_back(mat);
-	//mat = new Material(cubeShader, shaderDatas[2]);
-	//mats.push_back(mat);
-	//mat = new Material(cubeShader, shaderDatas[3]);
-	//mats.push_back(mat);
-
-	//MaterialSet* cms = MaterialSet::create()->addMaterial(mats[0]);
-	//matsets.push_back(cms);
-	//cms = MaterialSet::create()->addMaterial(mats[1]);
-	//matsets.push_back(cms);
-	//cms = MaterialSet::create()->addMaterial(mats[2]);
-	//matsets.push_back(cms);
-	//cms = MaterialSet::create()->addMaterial(mats[3]);
-	//matsets.push_back(cms);
-
-	//// now create some random cube?
-	//srand(SDL_GetTicks());
-	//for (int i = 0; i < 20; i++) {
-	//	BaseRenderObjectData* rod = (new RenderObjectData())
-	//		->usePosition(glm::ballRand(5.0f))
-	//		->useRotation( glm::angleAxis(
-	//			glm::radians(
-	//				glm::gaussRand(0.0f, 45.0f)
-	//			), glm::normalize(glm::vec3(
-	//				glm::gaussRand(0.0f, 1.0f),
-	//				glm::gaussRand(0.0f, 1.0f),
-	//				glm::gaussRand(0.0f, 1.0f)
-	//			)) ) 
-	//		);
-
-	//	BaseRenderObject* box = new BaseRenderObject(cube, rod, matsets[rand() % matsets.size()]);
-	//	renderObjs.push_back(box);
-	//}
 }
 
 void Game::onDestroy() {
@@ -248,14 +177,18 @@ void Game::onDestroy() {
 	delete textureMgr;
 
 	// delete render objects (unmanaged)
-	for (auto it = renderObjs.begin(); it != renderObjs.end(); ++it) delete* it;
-	/*for (auto it = shaders.begin(); it != shaders.end(); ++it) delete* it;
-	for (auto it = meshes.begin(); it != meshes.end(); ++it) delete* it;
-	for (auto it = shaderDatas.begin(); it != shaderDatas.end(); ++it) delete* it;
-	for (auto it = textures.begin(); it != textures.end(); ++it) delete* it;
-	for (auto it = mats.begin(); it != mats.end(); ++it) delete* it;
-	for (auto it = matsets.begin(); it != matsets.end(); ++it) delete* it;*/
-
+	for (auto it = renderObjs.begin(); it != renderObjs.end(); ++it) { 
+		// print bbox first?
+		AABB bbox;
+		if ((*it)->data->getBoundingBox(bbox)) {
+			// print it
+			SDL_Log("BBox: min(%.2f %.2f %.2f) max(%.2f %.2f %.2f)\n",
+				bbox.min.x, bbox.min.y, bbox.min.z,
+				bbox.max.x, bbox.max.y, bbox.max.z
+				);
+		}
+		delete* it;
+	};
 }
 
 void Game::onUpdate(float dt) {
@@ -272,9 +205,7 @@ void Game::onRender(float dt) {
 	//SDL_Log("Camera pos: %.4f, %.4f, %.4f\n", camPos.x, camPos.y, camPos.z);
 	m_renderer->getCamera()->setPosition(camPos);
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	// 3d rendering
-	glEnable(GL_DEPTH_TEST);
+	// 3d renderer
 	m_renderer->draw(this->renderObjs);
 
 	// 2d rendering
@@ -289,6 +220,10 @@ void Game::onRender(float dt) {
 		auto& io = ImGui::GetIO();
 		ImGui::Begin("App Config", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 			ImGui::TextColored(ImVec4(1, 1, 0, 1), "FPS: %d", fps);
+			if (ImGui::CollapsingHeader("Debugging")) {
+				ImGui::Checkbox("Draw Debug?", &m_renderer->drawDebug);
+				ImGui::ColorEdit4("Box Color", glm::value_ptr(m_renderer->debugColor));
+			}
 			
 			if (ImGui::CollapsingHeader("Background Settings")) {
 				ImGui::ColorPicker4("Color", glm::value_ptr(color));

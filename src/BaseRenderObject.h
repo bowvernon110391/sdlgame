@@ -1,8 +1,9 @@
 #pragma once
+#include "Mesh.h"
+#include "BaseRenderObjectData.h"
 
-class Mesh;
-class BaseRenderObjectData;
 class MaterialSet;
+class AABB;
 
 /// <summary>
 /// base render object (mesh + render obj data + matset)
@@ -13,6 +14,9 @@ public:
 		mesh = m;
 		data = d;
 		mat = s;
+
+		d->setLocalAABB(&m->boundingBox)
+			->updateBBox();
 	}
 
 	virtual ~BaseRenderObject() {
