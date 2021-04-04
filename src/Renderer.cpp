@@ -135,9 +135,12 @@ void Renderer::initDebugData() {
 		";
 
 	const char* fs = "\
+	 	#ifdef GL_ES	\n\
+		precision mediump float;	\n\
+		#endif	\n\
 		uniform vec4 material_diffuse; \n\
 		varying vec3 col; \n\
-		void main() { \
+		void main() { \n\
 			gl_FragColor = vec4(col, 1.0) * material_diffuse; \n\
 		} \n\
 		";

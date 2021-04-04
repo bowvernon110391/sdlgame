@@ -11,7 +11,7 @@
 #define U_SET(x) uniformLoc[(x)] >= 0
 #define U_LOC(x) uniformLoc[(x)]
 
-#define SU(x) Shader::UniformLoc::##x
+#define SU(x) Shader::UniformLoc::x
 #define SU_LOC(s, x) (s->getUniformLocation(SU(x)))
 #define SU_SET(s, x) (SU_LOC(x) >= 0)
 
@@ -160,7 +160,7 @@ protected:
 
 				glGetShaderInfoLog(shd, infoLen, NULL, infoLog);
 
-				SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error compiling shader: %s", infoLog);
+				SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error compiling shader: %s\n SOURCE_DUMP:\n %s", infoLog, src);
 
 				delete[] infoLog;
 			}

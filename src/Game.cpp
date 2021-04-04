@@ -212,6 +212,10 @@ void Game::onRender(float dt) {
 		auto& io = ImGui::GetIO();
 		ImGui::Begin("App Config", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 			ImGui::TextColored(ImVec4(1, 1, 0, 1), "FPS: %d", fps);
+			ImGui::SameLine();
+			if (ImGui::Button("QUIT")) {
+			    this->setRunFlag(false);
+			}
 			if (ImGui::CollapsingHeader("Debugging")) {
 				ImGui::Checkbox("Draw Debug?", &m_renderer->drawDebug);
 				ImGui::ColorEdit4("Box Color", glm::value_ptr(m_renderer->debugColor));
@@ -248,7 +252,7 @@ void Game::onRender(float dt) {
 						line = txt.substr(0, pos);
 						txt.erase(0, pos + delim.length());
 
-						ImGui::TextColored(colors[cnt++ % 2], line.c_str());
+						ImGui::TextColored(colors[cnt++ % 2], line.c_str(), "");
 					}
 				}
 			}

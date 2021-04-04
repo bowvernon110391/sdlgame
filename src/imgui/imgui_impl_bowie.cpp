@@ -134,38 +134,36 @@ bool ImGui_ImplBowie_CreateFontsTexture() {
 
 // create font shader for our implementation
 static void ImGui_ImplBowie_CreateFontShader() {
-	const char* vertShader = " \
-	uniform mat4 m_projection;\n \
-	\
-	attribute vec2 position;\n \
-	attribute vec2 uv;\n \
-	attribute vec4 color;\n \
-	\
-	varying vec4 vColor;\n \
-	varying vec2 vTexcoord;\n \
-	\
-	void main() {\n \
-		vColor = color;\n \
-		vTexcoord = uv;\n \
-		gl_Position = m_projection * vec4(position.xy, 0, 1);\n \
-	}\n \
-	";
+	const char* vertShader = R"(
+uniform mat4 m_projection;
 
-	const char* fragShader = "\
-	#ifdef GL_ES\n \
-	precision mediump float;\n \
-	#endif\n \
-	\
-	uniform sampler2D texture0;\n \
-	\
-	varying vec4 vColor;\n \
-	varying vec2 vTexcoord;\n \
-	\
-	void main() {\n \
-		vec4 color = texture2D(texture0, vTexcoord); \n \
-		gl_FragColor = vColor * color;\n \
-	}\n \
-	";
+attribute vec2 position;
+attribute vec2 uv;
+attribute vec4 color;
+
+varying vec4 vColor;
+varying vec2 vTexcoord;
+
+void main() {
+    vColor = color;
+    vTexcoord = uv;
+    gl_Position = m_projection * vec4(position.xy, 0, 1);
+}
+    )";
+
+	const char* fragShader =
+	        "#ifdef GL_ES\n"
+            "precision mediump float;\n"
+            "#endif\n"
+            "uniform sampler2D texture0;\n"
+            "varying vec4 vColor;\n"
+            "varying vec2 vTexcoord;\n"
+            "void main() {\n"
+            "vec4 color = texture2D(texture0, vTexcoord);\n"
+            "gl_FragColor = vColor * color;\n"
+            "}\n";
+
+	SDL_Log("Font Shader: %s", fragShader);
 
 	if (!fontShader) {
 		//fontShader = Shader::loadShaderFromSources(vertShader, strlen(vertShader), fragShader, strlen(fragShader));
