@@ -8,6 +8,7 @@
 #define MAX_SPOT_LIGHTS			2
 
 class Shader;
+class RenderPass;
 /// <summary>
 /// represent scene data
 /// </summary>
@@ -33,7 +34,7 @@ public:
 	SceneData* setSunIntensity(const glm::vec4& c) { sunIntensity = c; return this; }
 
 
-	virtual void setData(const Shader* s);
+	virtual void setupData(const Shader* s, const RenderPass* rp);
 	virtual void updateLightsUniformData(const glm::vec3& queryPos);
 	virtual int getActivePointLightsData(int MAX_LIGHT, std::vector<Light*>& result, const glm::vec3& pos);
 

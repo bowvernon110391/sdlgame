@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include "Helper.h"
+#include "Resource.h"
 #include "ShaderData.h"
 
 #define U_SET(x) uniformLoc[(x)] >= 0
@@ -18,7 +19,7 @@
 template<typename Resource>
 class ResourceManager;
 
-class Shader
+class Shader : public Resource
 {
 	friend class ResourceManager<Shader>;
 public:
@@ -36,6 +37,10 @@ public:
 	// bind program
 	void bind() const {
 		glUseProgram(programId);
+	}
+
+	virtual const char* type() {
+		return "SHADER";
 	}
 protected:
 
@@ -354,7 +359,8 @@ public:
 	void pushUniformLocation(const char* name, size_t id) {
 		// first, gotta check if i <= size, which means we need to resize
 		if (uniformLoc.size() <= id) {
-			uniformLoc.resize(id + 1);
+			//uniformLoc.resize(id + 1);
+			while (uniformLoc.size() <= id) uniformLoc.push_back(-1);
 		}
 
 		// just overwrite whatever's in there
@@ -364,7 +370,10 @@ public:
 	// push attribute location to specific index
 	void pushAttributeLocation(const char* name, size_t id) {
 		if (attributeLoc.size() <= id) {
-			attributeLoc.resize(id + 1);
+			//attributeLoc.resize(id + 1);
+			assert(id < 256);	// could be outrageous
+			// while we haven't reach desired size, push negative values
+			while (attributeLoc.size() <= id) attributeLoc.push_back(-1);
 		}
 		attributeLoc[id] = getAttribLocation(name);
 	}
@@ -454,43 +463,6 @@ public:
 		delete[] fs;
 
 		return this;
-	}
-
-	// setup material (assume it's bound)
-	virtual void setupData(const ShaderData* m) const {
-		// set texture data (if needed && possible)
-		int uLoc;
-		int nTexture = m->texture.size();
-		for (int i = 0; i < glm::min(nTexture, 4); i++) {
-			uLoc = UniformLoc::texture0 + i;
-			if (U_SET(uLoc) && nTexture > i) {
-				glActiveTexture(GL_TEXTURE0 + i);
-				//glEnable(GL_TEXTURE_2D);
-				m->texture[i]->bind();
-				glUniform1i(U_LOC(uLoc), i);
-			}
-		}
-
-		// set color data (if possible)
-		uLoc = UniformLoc::material_diffuse;
-		if (U_SET(uLoc)) {
-			glUniform4fv(U_LOC(uLoc), 1, glm::value_ptr(m->diffuseColor));
-		}
-
-		uLoc = UniformLoc::material_specular;
-		if (U_SET(uLoc)) {
-			glUniform4fv(U_LOC(uLoc), 1, glm::value_ptr(m->specularColor));
-		}
-
-		uLoc = UniformLoc::material_emission;
-		if (U_SET(uLoc)) {
-			glUniform4fv(U_LOC(uLoc), 1, glm::value_ptr(m->emissionColor));
-		}
-
-		uLoc = UniformLoc::material_shininess;
-		if (U_SET(uLoc)) {
-			glUniform1f(U_LOC(uLoc), m->shininess);
-		}
 	}
 };
 

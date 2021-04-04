@@ -1,5 +1,6 @@
 #include "SceneData.h"
 #include "Shader.h"
+#include "RenderPass.h"
 #include <algorithm>
 
 /// <summary>
@@ -16,7 +17,7 @@ static bool lightCostFunction(const Light& a, const Light& b) {
 	return a.distanceCost(queryPos) < b.distanceCost(queryPos);
 }
 
-void SceneData::setData(const Shader* s)
+void SceneData::setupData(const Shader* s, const RenderPass* rp)
 {
 	// set ambient color?
 	int u_loc = SU_LOC(s, scene_ambient_color);

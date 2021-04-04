@@ -34,6 +34,8 @@ public:
 		}
 
 		currentLoader = loaderFn;
+
+		this->counter = 0;
 	}
 	virtual ~ResourceManager() {
 		for (auto ptrToRes : resources) {
@@ -55,7 +57,8 @@ public:
 #ifdef _DEBUG
 		cout << "Loading resource(" << name << " as " << fqName << "), got " << hex << res << dec << endl;
 #endif
-		// put it in the container
+		// put it in the container, and set its id
+		res->id = ++counter;
 		resources.insert(make_pair(string(name), res));
 
 		// reset default loader
@@ -70,11 +73,16 @@ public:
 	/// </summary>
 	/// <param name="name"></param>
 	/// <returns></returns>
-	Resource* get(const char* name) {
+	Resource* get(const char* name, bool autoload = true) {
+		// try to look by name
 		Resource* r = resources[string(name)];
+
 		if (!r) {
+			// welp, not found and no autoload
+			// return default resource
 			return nullResource;
 		}
+		
 		return r;
 	}
 
@@ -95,6 +103,8 @@ public:
 		// make sure we don't put garbage
 		assert(r != nullptr);
 
+		// just insert it and set its id
+		r->id = ++counter;
 		resources.insert(make_pair(string(name), r));
 
 		return r;
@@ -148,7 +158,7 @@ public:
 		cout << "DEBUG_RESOURCE_CONTENTS: (" << resources.size() << ") ITEMS" << endl;
 		int cnt = 0;
 		for (pair<string, Resource*> e : resources) {
-			cout << QUOTE(Resource) << "[" << ++cnt << "] : name(" << e.first << ") @ " << hex << e.second << endl;
+			cout << e.second->type() << "[" << ++cnt << "] : name(" << e.first << ") @ " << hex << e.second << dec << " id(" << e.second->id << ")" << endl;
 		}
 		cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
 	}
@@ -159,4 +169,7 @@ protected:
 
 	// a null resource to avoid error?
 	Resource* nullResource;
+
+	// resource guid (in this manager scope)
+	int counter;
 };

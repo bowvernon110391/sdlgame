@@ -245,7 +245,7 @@ static void Imgui_ImplBowie_SetupRenderState(int fb_width, int fb_height, ImDraw
 
 	// setup shader
 	fontShader->bind();
-	fontShader->setupData(fontShaderData);	// setupData per material
+	fontShaderData->setupShader(fontShader, nullptr);	// setupData per material
 	// projection matrix
 	glUniformMatrix4fv(fontShader->getUniformLocation(Shader::UniformLoc::m_projection), 1, false, glm::value_ptr(projMat));
 	

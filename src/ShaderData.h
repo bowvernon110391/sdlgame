@@ -1,12 +1,16 @@
 #pragma once
 #include "Texture2d.h"
+#include "Resource.h"
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
+
+class Shader;
+class RenderPass;
 /// <summary>
 /// Base data for material (aka Shader data)
 /// </summary>
-class ShaderData {
+class ShaderData : public Resource {
 public:
 	ShaderData() {
 		// set default value?
@@ -49,6 +53,10 @@ public:
 			return 0;
 		return texture[slot];
 	}
+
+	virtual const char* type() { return "SHADER_DATA"; }
+
+	virtual void setupShader(Shader* s, RenderPass* r);
 	
 	std::vector<Texture2D*> texture;
 	glm::vec4 diffuseColor;

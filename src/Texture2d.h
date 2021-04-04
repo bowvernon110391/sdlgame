@@ -3,8 +3,9 @@
 
 #include <glad/glad.h>
 #include <cstddef>
+#include "Resource.h"
 
-class Texture2D {
+class Texture2D : public Resource {
 public:
 	GLuint texId;
 	int width, height;
@@ -31,6 +32,8 @@ public:
 		if (texData) delete[] texData;
 		destroyHandle();
 	}
+
+	virtual const char* type() { return "TEXTURE_2D"; }
 
 	bool createHandle() {
 		glGenTextures(1, &texId);

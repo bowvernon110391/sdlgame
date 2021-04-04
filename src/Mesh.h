@@ -3,9 +3,10 @@
 
 #include <cstdint>
 #include <vector>
+#include <stdio.h>
 #include "Helper.h"
 #include "AABB.h"
-#include <stdio.h>
+#include "Resource.h"
 
 #define DEBUG_BCF   1
 
@@ -16,19 +17,18 @@
 #define VF_UV2      (1<<4)  // 8 bytes xy
 #define VF_COLOR    (1<<5)  // 16 bytes xyzw
 
-class Mesh
+typedef struct SubMesh
 {
-public:
+    // this contains the indices begin-end only
+    // idxBegin is already a memory offset (not index)
+    // elemCount also already total count of elements
+    uint16_t idxBegin, elemCount;
+    char materialName[32];
+} SubMesh_t;
 
-    typedef struct SubMesh 
-    {
-        // this contains the indices begin-end only
-        // idxBegin is already a memory offset (not index)
-        // elemCount also already total count of elements
-        uint16_t idxBegin, elemCount;
-        char materialName[32];
-    } SubMesh_t;
-    
+class Mesh : public Resource
+{
+public:    
     // raw buffer
     size_t vertexBufferSize;
     void* vertexBuffer;
@@ -55,6 +55,8 @@ public:
     }
 
     ~Mesh();
+
+    virtual const char* type() { return "MESH"; }
 
 	// instantiate buffer
 	Mesh* createBufferObjects();
@@ -288,7 +290,7 @@ public:
 
         // read all submesh data
         for (int i = 0; i < submeshCount; i++) {
-            Mesh::SubMesh s;
+            SubMesh s;
 
             // 32b: material_name
             strcpy(s.materialName, ptr);

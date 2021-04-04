@@ -5,7 +5,7 @@
 #include "ResourceManager.h"
 #include <vector>
 class Renderer;
-class BaseRenderObject;
+class AbstractRenderObject;
 class Shader;
 class Mesh;
 class ShaderData;
@@ -55,13 +55,7 @@ private:
     ResourceManager<Texture2D> *textureMgr;
     ResourceManager<MaterialSet> *matsetMgr;
 
-    std::vector<BaseRenderObject*> renderObjs;
-    /*std::vector<Shader*> shaders;
-    std::vector<Mesh*> meshes;
-    std::vector<ShaderData*> shaderDatas;
-    std::vector<Material*> mats;
-    std::vector<Texture2D*> textures;
-    std::vector<MaterialSet*> matsets;*/
+    std::vector<AbstractRenderObject*> renderObjs;
 
     float cam_horzRot, cam_vertRot, cam_dist;
 };

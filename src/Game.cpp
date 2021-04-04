@@ -14,12 +14,11 @@
 #include "Renderer.h"
 #include "Camera.h"
 #include "SceneData.h"
-#include "RenderObjectData.h"
-#include "BaseRenderObject.h"
 #include "Shader.h"
 #include "Mesh.h"
 #include "Material.h"
 #include "ResourceManager.h"
+#include "MeshObject.h"
 
 Game::Game() {
 	cam_horzRot = 30;
@@ -61,7 +60,7 @@ void Game::onInit() {
 
 	// load a shader
 	shaderMgr->load("box");
-	shaderMgr->load("lightmap");
+	shaderMgr->load("plain");
 
 	// load textures
 	textureMgr->load("cliff.jpg");
@@ -74,32 +73,32 @@ void Game::onInit() {
 	shaderDataMgr->load("cliff")
 		->fillTextureSlot(0, textureMgr->get("cliff.jpg"))
 		->setShininess(10.0f)
-		->setSpecular(glm::vec4(glm::vec3(0.4f), 1.0f));
+		->setSpecular(glm::vec4(glm::vec3(1.0f) * glm::gaussRand(0.5f, 0.5f), 0.0f));
 	shaderDataMgr->load("grass")
 		->fillTextureSlot(0, textureMgr->get("grass.jpg"))
 		->setShininess(5.f)
-		->setSpecular(glm::vec4(glm::vec3(0.2f), 1.0f));
+		->setSpecular(glm::vec4(glm::vec3(1.0f) * glm::gaussRand(0.5f, 0.5f), 0.0f));
 	shaderDataMgr->load("gravel")
 		->fillTextureSlot(0, textureMgr->get("gravel.jpg"))
 		->setShininess(82.0f)
-		->setSpecular(glm::vec4(0.8f, 0.6f, 0.7f, 1.0f));
+		->setSpecular(glm::vec4(glm::vec3(1.0f) * glm::gaussRand(0.5f, 0.5f), 0.0f));
 	shaderDataMgr->load("crate")
 		->fillTextureSlot(0, textureMgr->get("crate.jpg"))
 		->setShininess(8.0f)
-		->setSpecular(glm::vec4(glm::vec3(0.5f), 1.0f));
+		->setSpecular(glm::vec4(glm::vec3(1.0f) * glm::gaussRand(0.5f, 0.5f), 1.0f));
 
 	// add material
 	materialMgr->load("box_cliff")
-		->withShader(shaderMgr->get("box"))
+		->withShader(shaderMgr->getRandom())
 		->withData(shaderDataMgr->get("cliff"));
 	materialMgr->load("box_grass")
-		->withShader(shaderMgr->get("box"))
+		->withShader(shaderMgr->getRandom())
 		->withData(shaderDataMgr->get("grass"));
 	materialMgr->load("box_gravel")
-		->withShader(shaderMgr->get("box"))
+		->withShader(shaderMgr->getRandom())
 		->withData(shaderDataMgr->get("gravel"));
 	materialMgr->load("box_crate")
-		->withShader(shaderMgr->get("box"))
+		->withShader(shaderMgr->getRandom())
 		->withData(shaderDataMgr->get("crate"));
 
 	// now add material set (a combination of material basically)
@@ -112,39 +111,37 @@ void Game::onInit() {
 	matsetMgr->load("box_crate")
 		->addMaterial(materialMgr->get("box_crate"));
 
-	// now create random objects
-	for (int i = 0; i < 13; i++) {
-		glm::vec3 pos = glm::sphericalRand(8.0f);
-		pos.y *= 0.2f;
-		pos.y += 3.5f;
-		BaseRenderObjectData* rod = (new RenderObjectData())
-			->usePosition(pos)
-			->useRotation(glm::angleAxis(
-				glm::radians(
-					glm::gaussRand(0.0f, 45.0f)
-				), glm::normalize(glm::vec3(
-					glm::gaussRand(0.0f, 1.0f),
-					glm::gaussRand(0.0f, 1.0f),
-					glm::gaussRand(0.0f, 1.0f)
-				)))
-			);
-
-		renderObjs.push_back(
-			new BaseRenderObject(meshMgr->getRandom(), rod, matsetMgr->getRandom())
+	// test to create object
+	for (int i = 0; i < 30; i++) {
+		MeshObject* mo = new MeshObject(
+			meshMgr->getRandom(), 
+			matsetMgr->getRandom()
 		);
+
+		mo->setPosition(glm::sphericalRand(10.0f) * glm::vec3(1, 0.2, 1) + glm::vec3(0, 4, 0))
+			->setRotation(
+				glm::angleAxis(
+					glm::radians(
+						glm::gaussRand(0.0f, 45.0f)
+					), glm::normalize(glm::vec3(
+						glm::gaussRand(0.0f, 1.0f),
+						glm::gaussRand(0.0f, 1.0f),
+						glm::gaussRand(0.0f, 1.0f)
+					)))
+			);
+		renderObjs.push_back(mo);
 	}
 
-	// spawn the level
-	renderObjs.push_back(new BaseRenderObject(
+	renderObjs.push_back(new MeshObject(
 		meshMgr->load("export_test.bcf"),
-		(new RenderObjectData())->updateBBox(),
-		matsetMgr->load("scene_matset")
-		->addMaterial(materialMgr->load("scene_mat")
+		matsetMgr->load("island")
+		->addMaterial(
+			materialMgr->load("island")
 			->withShader(shaderMgr->get("box"))
 			->withData(shaderDataMgr->load("island")
 				->fillTextureSlot(0, textureMgr->get("road.png"))
-				->setSpecular(glm::vec4(0.2, 0.2, 0.2, 1.0))
-				->setShininess(2.5f)
+				->setSpecular(glm::vec4( glm::vec3(0.2f) * glm::gaussRand(0.2f, 0.1f) , 0.0 ))
+				->setShininess(glm::gaussRand(10.0f, 10.0f))
 			)
 		)
 	));
@@ -179,14 +176,6 @@ void Game::onDestroy() {
 	// delete render objects (unmanaged)
 	for (auto it = renderObjs.begin(); it != renderObjs.end(); ++it) { 
 		// print bbox first?
-		AABB bbox;
-		if ((*it)->data->getBoundingBox(bbox)) {
-			// print it
-			SDL_Log("BBox: min(%.2f %.2f %.2f) max(%.2f %.2f %.2f)\n",
-				bbox.min.x, bbox.min.y, bbox.min.z,
-				bbox.max.x, bbox.max.y, bbox.max.z
-				);
-		}
 		delete* it;
 	};
 }
@@ -205,8 +194,11 @@ void Game::onRender(float dt) {
 	//SDL_Log("Camera pos: %.4f, %.4f, %.4f\n", camPos.x, camPos.y, camPos.z);
 	m_renderer->getCamera()->setPosition(camPos);
 
+	// clear depth and color
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	// 3d renderer
-	m_renderer->draw(this->renderObjs);
+	m_renderer->draw(this->renderObjs, dt);
 
 	// 2d rendering
 	glDisable(GL_DEPTH_TEST);
@@ -223,6 +215,42 @@ void Game::onRender(float dt) {
 			if (ImGui::CollapsingHeader("Debugging")) {
 				ImGui::Checkbox("Draw Debug?", &m_renderer->drawDebug);
 				ImGui::ColorEdit4("Box Color", glm::value_ptr(m_renderer->debugColor));
+			}
+
+			if (ImGui::CollapsingHeader("Color+Depth Pass")) {
+				RenderPass* rp = m_renderer->getPass("color_depth");
+				if (rp) {
+					if (ImGui::Button("See Cmd Buffer")) {
+						rp->generateDebugString();
+					}
+
+					ImGui::SameLine();
+					// set random matset
+					if (ImGui::Button("Randomize Matset")) {
+						// reset all object's matset, except the last one
+						for (int i = 0; i < renderObjs.size() - 1; i++) {
+							renderObjs[i]->ms = matsetMgr->getRandom();
+						}
+						rp->generateDebugString();
+					}
+
+					// spawn multiple text colored, alternated color
+					ImVec4 colors[2] = {
+						ImVec4(1,1,0,1), ImVec4(0,1,0,1)
+					};
+
+					std::string txt = rp->debugString;	// copy string
+					std::string delim = "\n";
+					std::string line;
+					size_t pos;
+					int cnt = 0;
+					while ((pos = txt.find(delim)) != std::string::npos) {
+						line = txt.substr(0, pos);
+						txt.erase(0, pos + delim.length());
+
+						ImGui::TextColored(colors[cnt++ % 2], line.c_str());
+					}
+				}
 			}
 			
 			if (ImGui::CollapsingHeader("Background Settings")) {
