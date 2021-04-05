@@ -4,9 +4,6 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
-#define FONT_TEXTURE_UNIFORM_LOC	0
-#define PROJ_MAT_UNIFORM_LOC		1
-
 static Texture2D* fontTexture = 0;
 static Shader* fontShader = 0;
 static ShaderData* fontShaderData = 0;
@@ -15,15 +12,30 @@ static GLuint vboHandle;
 static GLuint iboHandle;
 static bool showVirtualKeyboard = false;
 static SDL_Window* wndApp = 0;
+static TouchData touchData;
+static bool useTouchScreen = false;
+static int width = 0;
+static int height = 0;
 
 Texture2D* getFontTexture() {
 	return fontTexture;
 }
 
+TouchData* ImGui_ImplBowie_GetTouchData() {
+	return &touchData;
+}
+
 bool ImGui_ImplBowie_Init(SDL_Window *wnd) {
 	SDL_Log("Initializing bowie's IMGUI Implementation...");
 
+	std::string platform = SDL_GetPlatform();
+	if (platform == "Android" || platform == "iOS") {
+		useTouchScreen = true;
+	}
+
 	wndApp = wnd;
+
+	SDL_GetWindowSize(wnd, &width, &height);
 
 	ImGuiIO& io = ImGui::GetIO();
 	io.BackendRendererName = "imgui_impl_bowie";
@@ -37,6 +49,15 @@ bool ImGui_ImplBowie_Init(SDL_Window *wnd) {
 
 void ImGui_ImplBowie_Shutdown() {
 	ImGui_ImplBowie_DestroyDeviceObjects();
+}
+
+void ImGui_ImplBowie_InjectTouchHandler() {
+	if (useTouchScreen) {
+		auto& io = ImGui::GetIO();
+
+		io.MousePos = ImVec2(touchData.cX, touchData.cY);
+		io.MouseDown[0] = touchData.buttonDown[0];
+	}
 }
 
 void ImGui_ImplBowie_NewFrame() {
@@ -375,6 +396,20 @@ bool ImGui_ImplBowie_ProcessEvent(SDL_Event* e) {
 				return true;
 			}
 		}
+		break;
+	case SDL_FINGERDOWN:
+		touchData.buttonDown[0] = true;
+		touchData.cX = e->tfinger.x * width;
+		touchData.cY = e->tfinger.y * height;
+		break;
+	case SDL_FINGERMOTION:
+		touchData.cX = e->tfinger.x * width;
+		touchData.cY = e->tfinger.y * height;
+		break;
+	case SDL_FINGERUP:
+		touchData.buttonDown[0] = false;
+		touchData.cX = e->tfinger.x * width;
+		touchData.cY = e->tfinger.y * height;
 		break;
 	}
 	

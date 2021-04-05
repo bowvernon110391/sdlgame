@@ -26,6 +26,10 @@ void App::createWindow() {
 
     if (platformName == string("Android") || platformName == string("iOS")) {
 
+        // disable touch mouse fake event on mobile
+        SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+        SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0");
+
         bUseGLES = true;
 
         SDL_DisplayMode dm;

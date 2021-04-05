@@ -43,6 +43,7 @@ void Game::onInit() {
 			->setClipDistance(0.2f, 500.0f)
 		)
 		->useSceneData((new SceneData())
+			->setSunDiffuseColor(glm::vec4(1.0f))
 		)
 		->setViewport(0, 0, iWidth, iHeight);
 
@@ -57,10 +58,12 @@ void Game::onInit() {
 	// add a cube manually
 	meshMgr->put("cube", Mesh::createUnitBox()->createBufferObjects());
 	meshMgr->load("weirdcube.bcf");
+	meshMgr->load("weirdsphere.bcf");
 
 	// load a shader
 	shaderMgr->load("box");
 	shaderMgr->load("plain");
+	shaderMgr->load("spheremap");
 
 	// load textures
 	textureMgr->load("cliff.jpg");
@@ -68,6 +71,7 @@ void Game::onInit() {
 	textureMgr->load("gravel.jpg");
 	textureMgr->load("crate.jpg");
 	textureMgr->load("road.png");
+	textureMgr->load("env.jpg");
 
 	// add shader data
 	shaderDataMgr->load("cliff")
@@ -87,6 +91,12 @@ void Game::onInit() {
 		->setShininess(8.0f)
 		->setSpecular(glm::vec4(glm::vec3(1.0f) * glm::gaussRand(0.5f, 0.5f), 1.0f));
 
+	shaderDataMgr->load("reflect_env")
+		->fillTextureSlot(0, textureMgr->get("env.jpg"))
+		->setShininess(0.0f)
+		->setDiffuse(glm::vec4(0.2f, 0.2f, 0.2f, 1.0f))
+		->setSpecular(glm::vec4(0.0f));
+
 	// add material
 	materialMgr->load("box_cliff")
 		->withShader(shaderMgr->getRandom())
@@ -100,6 +110,9 @@ void Game::onInit() {
 	materialMgr->load("box_crate")
 		->withShader(shaderMgr->getRandom())
 		->withData(shaderDataMgr->get("crate"));
+	materialMgr->load("reflect_env")
+		->withShader(shaderMgr->get("spheremap"))
+		->withData(shaderDataMgr->get("reflect_env"));
 
 	// now add material set (a combination of material basically)
 	matsetMgr->load("box_cliff")
@@ -110,9 +123,11 @@ void Game::onInit() {
 		->addMaterial(materialMgr->get("box_gravel"));
 	matsetMgr->load("box_crate")
 		->addMaterial(materialMgr->get("box_crate"));
+	matsetMgr->load("reflect_env")
+		->addMaterial(materialMgr->get("reflect_env"));
 
 	// test to create object
-	for (int i = 0; i < 30; i++) {
+	for (int i = 0; i < 35; i++) {
 		MeshObject* mo = new MeshObject(
 			meshMgr->getRandom(), 
 			matsetMgr->getRandom()
@@ -140,8 +155,8 @@ void Game::onInit() {
 			->withShader(shaderMgr->get("box"))
 			->withData(shaderDataMgr->load("island")
 				->fillTextureSlot(0, textureMgr->get("road.png"))
-				->setSpecular(glm::vec4( glm::vec3(0.2f) * glm::gaussRand(0.2f, 0.1f) , 0.0 ))
-				->setShininess(glm::gaussRand(10.0f, 10.0f))
+				->setSpecular(glm::vec4(0.0f))
+				->setShininess(2.0f)
 			)
 		)
 	));
@@ -210,8 +225,17 @@ void Game::onRender(float dt) {
 		glClearColor(color.r, color.g, color.b, color.a);
 
 		auto& io = ImGui::GetIO();
+		std::string title;
+		if (io.WantCaptureMouse) {
+			title += "MOUSE_NEEDED";
+		} else {
+			title += "MOUSE_CLEAR";
+		}
+
 		ImGui::Begin("App Config", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 			ImGui::TextColored(ImVec4(1, 1, 0, 1), "FPS: %d", fps);
+			ImGui::SameLine();
+			ImGui::Text("%s", title.c_str());
 			ImGui::SameLine();
 			if (ImGui::Button("QUIT")) {
 			    this->setRunFlag(false);
@@ -291,17 +315,68 @@ void Game::onRender(float dt) {
 void Game::onEvent(SDL_Event* e) {
 	static int last_x=0, last_y=0;
 	static bool dragging = false;
+	static bool is_multigesturing = false;
+	static int fingercount = 0;
 	
 	int cur_x, cur_y;
+
+    auto& io = ImGui::GetIO();
+    int* viewport = m_renderer->getViewport();
 
 	bool canHandleInput = true;
 	if (!ImGui_ImplBowie_ProcessEvent(e)) {
 		canHandleInput = !ImGui_ImplSDL2_ProcessEvent(e);
 	}
 
-	auto& io = ImGui::GetIO();
+	// let's print out event
+	bool interesting = false;
+	std::string eventName;
+	switch (e->type) {
+	    case SDL_FINGERDOWN:
+	        interesting = true;
+	        eventName = "FINGER_DOWN";
+	        break;
+	    case SDL_FINGERMOTION:
+	        interesting = true;
+	        eventName = "FINGER_MOTION";
+	        break;
+	    case SDL_FINGERUP:
+	        interesting = true;
+	        eventName = "FINGER_UP";
+	        break;
+	    case SDL_MULTIGESTURE:
+	        interesting = true;
+	        eventName = "MULTI_GESTURE";
+	        break;
+	    case SDL_MOUSEBUTTONDOWN:
+	        interesting = true;
+	        eventName = "MOUSE_DOWN";
+	        break;
+	    case SDL_MOUSEMOTION:
+	        interesting = true;
+	        eventName = "MOUSE_MOVE";
+	        break;
+	    case SDL_MOUSEBUTTONUP:
+	        interesting = true;
+	        eventName = "MOUSE_UP";
+	        break;
+	}
+	if (interesting) {
+	    SDL_Log("INTERESTING_EVENT: %s, is_multigesturing: %s, ImGuiWantMouse: %s\n",
+	    		eventName.c_str(),
+	    		is_multigesturing ? "true" : "false",
+	    		io.WantCaptureMouse ? "true" : "false");
+	}
 
 	switch (e->type) {
+    case SDL_MULTIGESTURE:
+        if (io.WantCaptureMouse) break;
+        is_multigesturing = true;
+        fingercount = 2;
+        dragging = false;
+        // now just update scale?
+        cam_dist -= e->mgesture.dDist * 10.0f;
+        break;
 	case SDL_QUIT:
 		this->setRunFlag(false);
 		return;
@@ -311,11 +386,39 @@ void Game::onEvent(SDL_Event* e) {
 			m_renderer->setViewport(0, 0, e->window.data1, e->window.data2);
 		}
 		break;
+	// mimic dragging for finger down
+	case SDL_FINGERDOWN:
+		if (io.WantCaptureMouse || is_multigesturing) break;
+		++fingercount;
+		if (fingercount >= 2) {
+		    is_multigesturing = true;
+		    break;
+		}
+		dragging = true;
+		cur_x = last_x = e->tfinger.x * viewport[2];
+		cur_y = last_y = e->tfinger.y * viewport[3];
+		break;
 	case SDL_MOUSEBUTTONDOWN:
 		if (io.WantCaptureMouse) break;
 		dragging = true;
-		last_x = e->button.x;
-		last_y = e->button.y;
+		cur_x = last_x = e->button.x;
+		cur_y = last_y = e->button.y;
+		break;
+
+	// mimic mouse motion
+	case SDL_FINGERMOTION:
+		if (io.WantCaptureMouse || is_multigesturing) {
+			break;
+		}
+
+		cur_x = e->tfinger.x * viewport[2];
+		cur_y = e->tfinger.y * viewport[3];
+		if (dragging) {
+			cam_horzRot -= (float)(cur_x - last_x) * 0.5f;
+			cam_vertRot -= (float)(cur_y - last_y) * 0.25f;
+		}
+		last_x = cur_x;
+		last_y = cur_y;
 		break;
 	case SDL_MOUSEMOTION:
 		if (io.WantCaptureMouse) break;
@@ -332,10 +435,18 @@ void Game::onEvent(SDL_Event* e) {
 		if (io.WantCaptureMouse) break;
 		cam_dist -= e->wheel.y * 0.2f;
 		break;
+
+	// mimic button up
+	case SDL_FINGERUP:
+	    --fingercount;
+	    if (fingercount <0 ) fingercount = 0;
+	    dragging = is_multigesturing = false;
+	    break;
 	case SDL_MOUSEBUTTONUP:
 		if (io.WantCaptureMouse) break;
 		dragging = false;
 		break;
+
 	}
 }
 
@@ -375,6 +486,7 @@ void Game::destroyImGui() {
 void Game::beginRenderImGui() {
 	ImGui_ImplBowie_NewFrame();
 	ImGui_ImplSDL2_NewFrame(wndApp);
+	ImGui_ImplBowie_InjectTouchHandler();
 	ImGui::NewFrame();
 }
 
