@@ -6,6 +6,7 @@ uniform sampler2D texture0;
 varying vec2 vTexcoord;
 varying vec3 vNormal;	// normal in view space
 varying vec3 vSunDirection;	// sun direction in view space
+varying vec3 vEye;
 
 // some scene data
 uniform vec4 scene_ambient_color;
@@ -21,7 +22,7 @@ vec4 computeFinalColor(vec4 baseDiffuse) {
 	float dp = max(0.0, dot(n_normal, vSunDirection));
 	
 	// half vector of sun?
-	vec3 halfVec = normalize((vSunDirection + vec3(0.0,0.0,1.0)) * 0.5);
+	vec3 halfVec = normalize((vSunDirection + vEye) * 0.5);
 	
 	// specular term
 	float spec = pow( max(0.0, dot(halfVec, n_normal)), material_shininess );

@@ -66,66 +66,46 @@ void Game::onInit() {
 	shaderMgr->load("spheremap");
 
 	// load textures
-	textureMgr->load("cliff.jpg");
-	textureMgr->load("grass.jpg");
-	textureMgr->load("gravel.jpg");
-	textureMgr->load("crate.jpg");
-	textureMgr->load("road.png");
 	textureMgr->load("env.jpg");
+	textureMgr->load("env2.jpg");
+	textureMgr->load("env3.jpg");
+	textureMgr->load("road_on_grass.png")->withWrap(GL_REPEAT, GL_REPEAT);
 
 	// add shader data
-	shaderDataMgr->load("cliff")
-		->fillTextureSlot(0, textureMgr->get("cliff.jpg"))
-		->setShininess(10.0f)
-		->setSpecular(glm::vec4(glm::vec3(1.0f) * glm::gaussRand(0.5f, 0.5f), 0.0f));
-	shaderDataMgr->load("grass")
-		->fillTextureSlot(0, textureMgr->get("grass.jpg"))
-		->setShininess(5.f)
-		->setSpecular(glm::vec4(glm::vec3(1.0f) * glm::gaussRand(0.5f, 0.5f), 0.0f));
-	shaderDataMgr->load("gravel")
-		->fillTextureSlot(0, textureMgr->get("gravel.jpg"))
-		->setShininess(82.0f)
-		->setSpecular(glm::vec4(glm::vec3(1.0f) * glm::gaussRand(0.5f, 0.5f), 0.0f));
-	shaderDataMgr->load("crate")
-		->fillTextureSlot(0, textureMgr->get("crate.jpg"))
-		->setShininess(8.0f)
-		->setSpecular(glm::vec4(glm::vec3(1.0f) * glm::gaussRand(0.5f, 0.5f), 1.0f));
-
 	shaderDataMgr->load("reflect_env")
-		->fillTextureSlot(0, textureMgr->get("env.jpg"))
-		->setShininess(0.0f)
-		->setDiffuse(glm::vec4(0.2f, 0.2f, 0.2f, 1.0f))
-		->setSpecular(glm::vec4(0.0f));
+		->fillTextureSlot(0, textureMgr->get("env.jpg"));
+	shaderDataMgr->load("reflect_env2")
+		->fillTextureSlot(0, textureMgr->get("env2.jpg"));
+	shaderDataMgr->load("reflect_env3")
+		->fillTextureSlot(0, textureMgr->get("env3.jpg"));
+	shaderDataMgr->load("rally_track_01")
+		->fillTextureSlot(0, textureMgr->get("road_on_grass.png"))
+		->setShininess(50.1f)
+		->setSpecular(glm::vec4(0.5f));
 
-	// add material
-	materialMgr->load("box_cliff")
-		->withShader(shaderMgr->getRandom())
-		->withData(shaderDataMgr->get("cliff"));
-	materialMgr->load("box_grass")
-		->withShader(shaderMgr->getRandom())
-		->withData(shaderDataMgr->get("grass"));
-	materialMgr->load("box_gravel")
-		->withShader(shaderMgr->getRandom())
-		->withData(shaderDataMgr->get("gravel"));
-	materialMgr->load("box_crate")
-		->withShader(shaderMgr->getRandom())
-		->withData(shaderDataMgr->get("crate"));
+	// make a material
 	materialMgr->load("reflect_env")
 		->withShader(shaderMgr->get("spheremap"))
 		->withData(shaderDataMgr->get("reflect_env"));
+	materialMgr->load("reflect_env2")
+		->withShader(shaderMgr->get("spheremap"))
+		->withData(shaderDataMgr->get("reflect_env2"));
+	materialMgr->load("reflect_env3")
+		->withShader(shaderMgr->get("spheremap"))
+		->withData(shaderDataMgr->get("reflect_env3"));
+	materialMgr->load("rally_track_01")
+		->withShader(shaderMgr->get("box"))
+		->withData(shaderDataMgr->get("rally_track_01"));
 
 	// now add material set (a combination of material basically)
-	matsetMgr->load("box_cliff")
-		->addMaterial(materialMgr->get("box_cliff"));
-	matsetMgr->load("box_grass")
-		->addMaterial(materialMgr->get("box_grass"));
-	matsetMgr->load("box_gravel")
-		->addMaterial(materialMgr->get("box_gravel"));
-	matsetMgr->load("box_crate")
-		->addMaterial(materialMgr->get("box_crate"));
 	matsetMgr->load("reflect_env")
 		->addMaterial(materialMgr->get("reflect_env"));
-
+	matsetMgr->load("reflect_env2")
+		->addMaterial(materialMgr->get("reflect_env2"));
+	matsetMgr->load("reflect_env3")
+		->addMaterial(materialMgr->get("reflect_env3"));
+	matsetMgr->load("rally_track_01")
+		->addMaterial(materialMgr->get("rally_track_01"));
 	// test to create object
 	for (int i = 0; i < 35; i++) {
 		MeshObject* mo = new MeshObject(
@@ -147,19 +127,12 @@ void Game::onInit() {
 		renderObjs.push_back(mo);
 	}
 
-	renderObjs.push_back(new MeshObject(
-		meshMgr->load("export_test.bcf"),
-		matsetMgr->load("island")
-		->addMaterial(
-			materialMgr->load("island")
-			->withShader(shaderMgr->get("box"))
-			->withData(shaderDataMgr->load("island")
-				->fillTextureSlot(0, textureMgr->get("road.png"))
-				->setSpecular(glm::vec4(0.0f))
-				->setShininess(2.0f)
-			)
-		)
-	));
+	/*renderObjs.push_back(new MeshObject(
+		meshMgr->load("rally_track_01.bcf"),
+		matsetMgr->get("rally_track_01")
+	));*/
+
+	glEnable(GL_MULTISAMPLE);
 }
 
 void Game::onDestroy() {

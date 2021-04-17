@@ -3,20 +3,19 @@ precision mediump float;
 #endif
 
 uniform sampler2D texture0;
-uniform vec4 material_diffuse;
 
-varying vec2 vUv;
 varying vec3 vNormal;
 varying vec3 vEye;
 
 void main() {
-	vec3 eyeVector = normalize(-vEye);
-	// reflect it?
-	vec3 nNormal = normalize(vNormal);
-	vec3 sc = -eyeVector + nNormal * (2.0 * dot(nNormal, eyeVector));
+	vec3 r = (reflect(vEye, (vNormal)));
+	float m = 2. * sqrt(
+		pow(r.x, 2.) + 
+		pow(r.y, 2.) +
+		pow(r.z+1., 2.)
+	);
 	
-	//vec4 refMap = texture2D(texture0, sc.xy);
-	//vec4 finalColor = refMap;
-	
-	gl_FragColor = texture2D(texture0, sc.xy * 0.5 + 0.5);
+	vec2 vN = r.xy / m + 0.5;
+
+	gl_FragColor = texture2D(texture0, vN); //vec4(vN.x, vN.y, 0.0, 1.0);
 }

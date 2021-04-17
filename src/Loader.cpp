@@ -14,7 +14,7 @@ Shader* Game::loadShader(const char* name) {
 
 Texture2D* Game::loadTexture(const char* name) {
 	// load the texture, do not set anything yet?
-	return Texture2D::loadFromFile(name, true);
+	return Texture2D::loadFromFile(name, true)->withFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
 }
 
 Mesh* Game::loadMesh(const char* name) {
