@@ -232,7 +232,7 @@ void Game::onRender(float dt) {
 			}
 
 			// debug draw
-			ImGui::Checkbox("Debug Draw", &lmo->debug_draw);
+			ImGui::Checkbox("Draw Active Mesh Only", &lmo->debug_draw);
 			// active mesh?
 			ImGui::SliderInt("active_mesh", &lmo->active_mesh, 0, lmo->lm->mesh_count - 1);
 

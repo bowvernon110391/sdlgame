@@ -26,6 +26,11 @@ public:
 
 	virtual void clear() {
 		bucket.clear();
+		// clear current commands?
+		for (RenderCommand* rc : cmds) {
+			delete rc;
+		}
+		cmds.clear();
 	}
 
 	int priority;

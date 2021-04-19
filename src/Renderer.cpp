@@ -7,6 +7,7 @@
 #include "ShaderData.h"
 #include "RenderPass.h"
 #include "ColorDepthPass.h"
+#include "DebugDrawPass.h"
 
 #include <glad/glad.h>
 
@@ -71,6 +72,9 @@ RenderPass* Renderer::addPass(const std::string& name, RenderPass* p)
 void Renderer::createPasses() {
 	// the most important, teh depth+color pass
 	addPass("color_depth", new ColorDepthPass(5));
+	// debug pass (optional)
+	addPass("debug", new DebugDrawPass(6));
+	
 }
 
 void Renderer::initDebugData() {
@@ -107,18 +111,15 @@ void Renderer::initDebugData() {
 		 half,  half,-half,	// 7
 	};
 
-	// index em
-	uint16_t indices[36] = {
-		0, 1, 2, 0, 2, 3,   // front
-		4, 5, 6, 4, 6, 7,   // back
-		1, 4, 2, 2, 4, 7,	// right
-		5, 0, 3, 5, 3, 6,	// left
-		3, 2, 7, 3, 7, 6,	// top
-		0, 5, 4, 0, 4, 1	// bottom
+	// index em (lines)
+	uint16_t indices[24] = {
+		0,1, 1,2, 2,3, 3,0,
+		4,5, 5,6, 6,7, 7,4,
+		1,4, 2,7, 6,3, 5,0
 	};
 
 	vbDebug.insert(vbDebug.end(), &verts[0], &verts[24]);
-	ibDebug.insert(ibDebug.end(), &indices[0], &indices[36]);
+	ibDebug.insert(ibDebug.end(), &indices[0], &indices[24]);
 
 	glBufferData(GL_ARRAY_BUFFER, vbDebug.size() * sizeof(float), &vbDebug[0], GL_STREAM_DRAW);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, ibDebug.size() * sizeof(unsigned short), &ibDebug[0], GL_STREAM_DRAW);
@@ -232,9 +233,6 @@ void Renderer::draw(std::vector<AbstractRenderObject*>& objs, float dt)
 		// 3rd step, draw each pass
 		p->draw(dt);
 	}
-
-	
-	// draw debug here!
 }
 
 void Renderer::setupVertexState(const Shader* shd) {

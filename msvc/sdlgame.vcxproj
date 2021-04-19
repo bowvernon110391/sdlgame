@@ -154,6 +154,7 @@
     <ClCompile Include="..\src\bullet\btBulletDynamicsAll.cpp" />
     <ClCompile Include="..\src\bullet\btLinearMathAll.cpp" />
     <ClCompile Include="..\src\ColorDepthPass.cpp" />
+    <ClCompile Include="..\src\DebugDrawPass.cpp" />
     <ClCompile Include="..\src\Game.cpp" />
     <ClCompile Include="..\src\glad\src\glad.c" />
     <ClCompile Include="..\src\Helper.cpp" />
@@ -185,6 +186,7 @@
     <ClInclude Include="..\src\bullet\btBulletDynamicsCommon.h" />
     <ClInclude Include="..\src\Camera.h" />
     <ClInclude Include="..\src\ColorDepthPass.h" />
+    <ClInclude Include="..\src\DebugDrawPass.h" />
     <ClInclude Include="..\src\Game.h" />
     <ClInclude Include="..\src\Helper.h" />
     <ClInclude Include="..\src\imgui\imconfig.h" />

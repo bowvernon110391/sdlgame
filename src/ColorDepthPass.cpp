@@ -46,30 +46,6 @@ void ColorDepthPass::processRenderObject(AbstractRenderObject* o)
 /// </summary>
 void ColorDepthPass::generateRenderCommand()
 {
-	// clear current commands?
-	for (RenderCommand* rc : cmds) {
-		delete rc;
-	}
-	cmds.clear();
-
-	//// let's just build naively
-	//for (const Renderable& r : bucket) {
-	//	// bind shader
-	//	cmds.push_back(new RC_BindShader(r.s, this));
-
-	//	// bind texture data (shader data basically)
-	//	cmds.push_back(new RC_BindShaderData(r.s, r.sd, this));
-
-	//	// bind object data to shader
-	//	cmds.push_back(new RC_BindShaderDataFromObject(r.s, r.ro, this));
-
-	//	// bind buffer
-	//	cmds.push_back(new RC_BindBufferObject(r.m, r.s));
-
-	//	// draw command
-	//	cmds.push_back(new RC_DrawElements(r.sm, GL_TRIANGLES));
-	//}
-
 	 //a bunch of tracker?
 	Shader* ls = nullptr;
 	ShaderData* lsd = nullptr;

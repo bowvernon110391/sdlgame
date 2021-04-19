@@ -7,6 +7,7 @@ class Mesh;
 class MaterialSet;
 class Renderable;
 class RenderPass;
+class AABB;
 /// <summary>
 /// This is a pure abstract render object, with only couple of responsibility, which are:
 /// - SETUP SHADER DATA
@@ -21,6 +22,8 @@ public:
 	virtual void update(float dt) = 0;
 	virtual void preRender(float dt) = 0;
 	virtual void fillRenderable(std::vector<Renderable> &bucket) = 0;
+	// used by debug pass
+	virtual void getDebugAABB(AABB* bbox) {}
 
 	// some basic?
 	virtual AbstractRenderObject* setFlags(int f) {
