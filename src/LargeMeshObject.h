@@ -17,6 +17,7 @@ public:
 	virtual void update(float dt) override;
 	virtual void preRender(float dt) override;
 	virtual void fillRenderable(std::vector<Renderable>& bucket) override;
+	virtual void getDebugAABB(std::vector<AABB>& bboxes) override;
 
 	// some data
 	LargeMesh* lm;

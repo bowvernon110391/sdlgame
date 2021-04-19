@@ -89,6 +89,8 @@ void Game::onInit() {
 	shaderDataMgr->load("trimsheet_01")
 		->fillTextureSlot(0, textureMgr->get("trimsheet_01.png"))
 		->setShininess(1.0f);
+	shaderDataMgr->load("debug")
+		->setDiffuse(glm::vec4(1.f, 0.f, 0.f, 1.f));
 
 
 	// make a material
@@ -107,6 +109,9 @@ void Game::onInit() {
 	materialMgr->load("trimsheet_01")
 		->withShader(shaderMgr->get("plain"))
 		->withData(shaderDataMgr->get("trimsheet_01"));
+	materialMgr->load("debug")
+		->withShader(m_renderer->getDebugShader())
+		->withData(shaderDataMgr->get("debug"));
 
 	// now add material set (a combination of material basically)
 	matsetMgr->load("reflect_env")
@@ -118,8 +123,10 @@ void Game::onInit() {
 	matsetMgr->load("rally_track_01")
 		->addMaterial(materialMgr->get("rally_track_01"))
 		->addMaterial(materialMgr->get("reflect_env2"));
+	matsetMgr->load("debug")
+		->addMaterial(materialMgr->get("debug"));
 	// test to create object
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 15; i++) {
 		MeshObject* mo = new MeshObject(
 			meshMgr->getRandom(), 
 			matsetMgr->getRandom()

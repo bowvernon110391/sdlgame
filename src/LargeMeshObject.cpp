@@ -122,3 +122,20 @@ void LargeMeshObject::fillRenderable(std::vector<Renderable>& bucket)
 		}
 	}	
 }
+
+void LargeMeshObject::getDebugAABB(std::vector<AABB>& bboxes)
+{
+	// depends, may only sent active aabb, or all of them?
+	if (debug_draw) {
+		// find node based on mesh_id
+		KDTreeNode* n = lm->findNodeByMeshId(active_mesh);
+		if (n) {
+			bboxes.push_back(n->bbox);
+		}
+	}
+	else {
+		for (const KDTreeNode& n : lm->nodes) {
+			bboxes.push_back(n.bbox);
+		}
+	}
+}

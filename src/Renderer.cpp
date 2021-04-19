@@ -79,7 +79,7 @@ void Renderer::createPasses() {
 
 void Renderer::initDebugData() {
 	// set color
-	debugColor = glm::vec4(1.0, 0.0, 0.0, 0.1);
+	debugColor = glm::vec4(1.0, 0.0, 0.0, 1.0);
 	// generate cube, with size 1 perhaps?
 	// genereat buffers
 	glGenBuffers(1, &vboDebug);
@@ -91,9 +91,6 @@ void Renderer::initDebugData() {
 	// fill our vb
 	vbDebug.clear();
 	ibDebug.clear();
-
-	vbDebug.resize(24);
-	ibDebug.resize(36);
 
 	float half = 0.5f;
 	float verts[] = {
@@ -112,7 +109,7 @@ void Renderer::initDebugData() {
 	};
 
 	// index em (lines)
-	uint16_t indices[24] = {
+	uint16_t indices[] = {
 		0,1, 1,2, 2,3, 3,0,
 		4,5, 5,6, 6,7, 7,4,
 		1,4, 2,7, 6,3, 5,0
@@ -122,15 +119,13 @@ void Renderer::initDebugData() {
 	ibDebug.insert(ibDebug.end(), &indices[0], &indices[24]);
 
 	glBufferData(GL_ARRAY_BUFFER, vbDebug.size() * sizeof(float), &vbDebug[0], GL_STREAM_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, ibDebug.size() * sizeof(unsigned short), &ibDebug[0], GL_STREAM_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, ibDebug.size() * sizeof(unsigned short), &ibDebug[0], GL_STATIC_DRAW);
 
 	// init shader
 	const char* vs = "\
 		attribute vec3 position; \n\
 		uniform mat4 m_model_view_projection; \n\
-		varying vec3 col; \n\
 		void main() { \n\
-			col = max(position, vec3(0.1,0.1,0.1)); \n\
 			gl_Position = m_model_view_projection * vec4(position, 1.0); \n\
 		} \n\
 		";
@@ -140,9 +135,8 @@ void Renderer::initDebugData() {
 		precision mediump float;	\n\
 		#endif	\n\
 		uniform vec4 material_diffuse; \n\
-		varying vec3 col; \n\
 		void main() { \n\
-			gl_FragColor = vec4(col, 1.0) * material_diffuse; \n\
+			gl_FragColor = material_diffuse; \n\
 		} \n\
 		";
 
@@ -150,8 +144,8 @@ void Renderer::initDebugData() {
 }
 
 void Renderer::generateDebugData(const AABB& b) {
-	// just recreate the vertbuffer
-	assert(vbDebug.size() != 24);
+	// just recreate the vertbuffer (make sure it contains space for 8x vec3)
+	assert(vbDebug.size() == 24);
 
 	const glm::vec3& min = b.min;
 	const glm::vec3& max = b.max;
@@ -321,143 +315,3 @@ void Renderer::setupVertexArray(const Shader* shd, const Mesh* m)
 	}
 	offset += ((m->vertexFormat & VF_UV2) >> 4) * sizeof(float) * 2;
 }
-
-// just draw something?
-
-
-//void Renderer::draw(const std::vector<BaseRenderObject*>& data) {
-//	// update scene data? and camera too ofc
-//	if (m_scene && m_camera) {
-//		m_scene->updateLightsUniformData(m_camera->getPosition());
-//	}
-//
-//	// 1st pass, the color + Depth pass
-//	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-//	glDepthMask(GL_TRUE);
-//	glEnable(GL_DEPTH_TEST);
-//	glDisable(GL_BLEND);
-//	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//	// prepare pass state?
-//	// first, gotta build a queue, then sort them all?
-//	// nope, just iterate shit
-//
-//	// enable depth write
-//
-//	auto it = data.begin();
-//	while (it != data.end()) {
-//		BaseRenderObject* obj = *it;
-//		// draw it, for every submesh it has
-//		this->draw(*obj);
-//
-//		// increment
-//		++it;
-//	}
-//
-//	// 2nd pass, debug (only active sometime)
-//	glDepthMask(GL_FALSE);
-//	glEnable(GL_BLEND);
-//	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-//	// draw debug too?
-//	if (drawDebug) {
-//		AABB tmp;
-//		glm::mat4 mvp;
-//		//glm::vec4 boxColor = glm::vec4(1.0f, 1.0f, 0.0f, 0.1f);
-//
-//		int a_pos = debugShader->getAttribLocation(Shader::AttribLoc::position);
-//		assert(a_pos >= 0);
-//
-//		// compute mvp (aabb already in world space)
-//		mvp = m_camera->getProjectionMatrix() * m_camera->getViewMatrix();
-//
-//		// bind buffer and shader
-//		debugShader->bind();
-//
-//		// set uniforms
-//		glUniformMatrix4fv(
-//			debugShader->getUniformLocation(Shader::UniformLoc::m_model_view_projection), 
-//			1, 
-//			false, 
-//			glm::value_ptr(mvp));
-//
-//		glBindBuffer(GL_ARRAY_BUFFER, vboDebug);
-//		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboDebug);
-//
-//		// enable vertex position?
-//		glEnableVertexAttribArray(a_pos);
-//
-//		auto it = data.begin();
-//		while (it != data.end()) {
-//			// grab our bbox onleh
-//			BaseRenderObject* obj = *it;
-//
-//			glUniform4fv(
-//				debugShader->getUniformLocation(Shader::UniformLoc::material_diffuse),
-//				1,
-//				glm::value_ptr(debugColor));
-//
-//			if (obj->data->getBoundingBox(tmp)) {
-//				// it can give us bounding box, now draw it
-//				generateDebugData(tmp);
-//
-//				// point our data to updated buffer?
-//				glVertexAttribPointer(a_pos, 3, GL_FLOAT, false, 3 * sizeof(float), 0);
-//
-//				// draw call
-//				glDrawElements(GL_TRIANGLES, ibDebug.size(), GL_UNSIGNED_SHORT, 0);
-//			}
-//
-//			++it;
-//		}
-//	}
-//}
-
-/// <summary>
-/// draw a single object?
-/// </summary>
-/// <param name="ro"></param>
-//void Renderer::draw(const BaseRenderObject& ro) {
-//	// for every submeshes draw call it
-//	const BaseRenderObjectData* rod = ro.data;
-//	
-//	
-//	//SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "GL_ERROR: CODE = %d\n", glGetError());
-//	//SDL_assert(glGetError() != GL_INVALID_OPERATION);
-//
-//	for (int i = 0; i < ro.mesh->subMeshes.size(); i++) {
-//		// setup shader per submeshes
-//		const Shader* sh = ro.mat->mats[i]->sh;
-//		const ShaderData* shd = ro.mat->mats[i]->shData;
-//		const Mesh::SubMesh* mesh = &ro.mesh->subMeshes[i];
-//
-//		// bind shader
-//		sh->bind();
-//		//SDL_assert(glGetError() == GL_NO_ERROR);
-//
-//		// bind buffer
-//		ro.mesh->bind();
-//
-//		// enable vertex attributes based on shader attrib flags
-//		setupVertexState(sh);
-//		//SDL_assert(glGetError() == GL_NO_ERROR);
-//		// set pointer too
-//		setupVertexArray(sh, ro.mesh);
-//		//SDL_assert(glGetError() == GL_NO_ERROR);
-//		
-//		// set per-pass data
-//		this->setPassData(sh);
-//		//SDL_assert(glGetError() == GL_NO_ERROR);
-//		// TODO: GRAB ALL SCENE AND CAMERA DATA, INJECT SHADER USING THEM
-//		// set per-material data
-//		this->setMaterialData(sh, shd);
-//		//SDL_assert(glGetError() == GL_NO_ERROR);
-//		// set per-object data
-//		// TODO: GRAB RENDER OBJECT DATA, INJECT SHADER USING THEM
-//		this->setInstanceData(sh, rod);
-//		//SDL_assert(glGetError() == GL_NO_ERROR);
-//
-//		// draw call
-//		// TODO: JUST CALL GLDRAWELEMENTS HERE, ALL HARD JOB IS DONE
-//		glDrawElements(GL_TRIANGLES, mesh->elemCount, GL_UNSIGNED_SHORT, (const void*)mesh->idxBegin);
-//		//SDL_assert(glGetError() == GL_NO_ERROR);
-//	}
-//}

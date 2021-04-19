@@ -38,6 +38,11 @@ public:
 
 	void createPasses();
 
+	Shader* getDebugShader() { return debugShader; }
+	void generateDebugData(const AABB& b);
+	int getDebugVBO() { return vboDebug; }
+	int getDebugIBO() { return iboDebug; }
+
 	// usable by everyone?
 	static void setupVertexState(const Shader* shd);
 	static void setupVertexArray(const Shader* shd, const Mesh* m);
@@ -66,6 +71,5 @@ protected:
 	Shader* debugShader;
 
 	void initDebugData();
-	void generateDebugData(const AABB& b);
 	void destroyDebugData();
 };

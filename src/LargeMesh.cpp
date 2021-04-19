@@ -270,3 +270,16 @@ LargeMesh* LargeMesh::createBufferObjects() {
 
     return this;
 }
+
+KDTreeNode* LargeMesh::findNodeByMeshId(int id)
+{
+    if (id < 0 || id >= meshes.size())
+        return nullptr;
+    // do linear search?
+    // yep, from the back though
+    for (auto it = nodes.rbegin(); it != nodes.rend(); ++it) {
+        if (it->mesh_id == id)
+            return &(*it);
+    }
+    return nullptr;
+}

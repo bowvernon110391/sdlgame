@@ -14,6 +14,10 @@ public:
 		// nothing
 	}
 
+	AABB(const AABB& b) : 
+		AABB(b.min, b.max)
+	{}
+
 	// expand bounded area
 	void expand(const AABB& b) {
 		min = glm::min(min, b.min);

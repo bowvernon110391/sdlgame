@@ -49,6 +49,7 @@ public:
 
 	// helper
 	LargeMesh* createBufferObjects();
+	KDTreeNode* findNodeByMeshId(int id);
 
 	// nodes
 	std::vector<KDTreeNode> nodes;
