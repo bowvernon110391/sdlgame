@@ -2,6 +2,7 @@
 #include <vector>
 #include "AABB.h"
 #include "Mesh.h"
+#include "Resource.h"
 
 class KDTreeNode {
 public:
@@ -34,7 +35,7 @@ public:
 /// <summary>
 /// This class represent a large mesh with some BVH (KDTree)
 /// </summary>
-class LargeMesh {
+class LargeMesh : public Resource {
 public:
 	LargeMesh();
 	~LargeMesh();
@@ -43,20 +44,26 @@ public:
 	static LargeMesh* loadLMFFromMemory(const char* buf, size_t buflen);
 	static LargeMesh* loadLMFFromFile(const char* filename);
 
+	// Inherited via Resource
+	virtual const char* type() override;
+
+	// helper
+	LargeMesh* createBufferObjects();
+
 	// nodes
 	std::vector<KDTreeNode> nodes;
 	// meshes
 	std::vector<Mesh*> meshes;
 
 	// header data
-	int node_count, mesh_count;
+	int node_count, mesh_count, submesh_per_mesh;
 	int vertex_format;
 	size_t vertex_size;
 	char name[32];
-
 protected:
 	// helper
 	char* parseHeader(const char* buf);
 	char* parseNode(const char* buf, KDTreeNode& n);
 	char* parseMesh(const char* buf, Mesh* m);
+	void setupReferences();
 };

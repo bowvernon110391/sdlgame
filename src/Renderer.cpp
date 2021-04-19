@@ -234,7 +234,7 @@ void Renderer::draw(std::vector<AbstractRenderObject*>& objs, float dt)
 	}
 
 	
-	
+	// draw debug here!
 }
 
 void Renderer::setupVertexState(const Shader* shd) {

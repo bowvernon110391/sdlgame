@@ -164,6 +164,7 @@
     <ClCompile Include="..\src\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\src\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\src\LargeMesh.cpp" />
+    <ClCompile Include="..\src\LargeMeshObject.cpp" />
     <ClCompile Include="..\src\Loader.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Mesh.cpp" />
@@ -195,6 +196,7 @@
     <ClInclude Include="..\src\imgui\imstb_textedit.h" />
     <ClInclude Include="..\src\imgui\imstb_truetype.h" />
     <ClInclude Include="..\src\LargeMesh.h" />
+    <ClInclude Include="..\src\LargeMeshObject.h" />
     <ClInclude Include="..\src\Light.h" />
     <ClInclude Include="..\src\Material.h" />
     <ClInclude Include="..\src\MeshObject.h" />

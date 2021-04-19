@@ -12,6 +12,7 @@ class ShaderData;
 class Material;
 class Texture2D;
 class MaterialSet;
+class LargeMesh;
 
 
 // #define GLM_FORCE_MESSAGES
@@ -43,6 +44,7 @@ private:
     static Texture2D* loadTexture(const char* name);
     static Material* loadBasicMaterial(const char* name);
     static MaterialSet* loadMaterialSet(const char* name);
+    static LargeMesh* loadLargeMesh(const char* name);
 
     // THE renderer
     Renderer* m_renderer;
@@ -50,6 +52,7 @@ private:
     // will replace with proper manager later...
     ResourceManager<Shader> *shaderMgr;
     ResourceManager<Mesh> *meshMgr;
+    ResourceManager<LargeMesh>* largeMeshMgr;
     ResourceManager<ShaderData> *shaderDataMgr;
     ResourceManager<Material> *materialMgr;
     ResourceManager<Texture2D> *textureMgr;

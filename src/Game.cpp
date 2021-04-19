@@ -16,9 +16,11 @@
 #include "SceneData.h"
 #include "Shader.h"
 #include "Mesh.h"
+#include "LargeMesh.h"
 #include "Material.h"
 #include "ResourceManager.h"
 #include "MeshObject.h"
+#include "LargeMeshObject.h"
 
 Game::Game() {
 	cam_horzRot = 30;
@@ -29,7 +31,7 @@ Game::Game() {
 Game::~Game() {
 
 }
-
+static LargeMeshObject* lmo;
 void Game::onInit() {
 	srand(SDL_GetTicks());
 	initImGui();
@@ -53,6 +55,7 @@ void Game::onInit() {
 	materialMgr = new ResourceManager<Material>(loadBasicMaterial);
 	matsetMgr = new ResourceManager<MaterialSet>(loadMaterialSet);
 	meshMgr = new ResourceManager<Mesh>(loadMesh, "meshes");
+	largeMeshMgr = new ResourceManager<LargeMesh>(loadLargeMesh, "meshes");
 	textureMgr = new ResourceManager<Texture2D>(loadTexture, "textures");
 
 	// add a cube manually
@@ -70,6 +73,7 @@ void Game::onInit() {
 	textureMgr->load("env2.jpg");
 	textureMgr->load("env3.jpg");
 	textureMgr->load("road_on_grass.png")->withWrap(GL_REPEAT, GL_REPEAT);
+	textureMgr->load("trimsheet_01.png");
 
 	// add shader data
 	shaderDataMgr->load("reflect_env")
@@ -81,7 +85,11 @@ void Game::onInit() {
 	shaderDataMgr->load("rally_track_01")
 		->fillTextureSlot(0, textureMgr->get("road_on_grass.png"))
 		->setShininess(50.1f)
-		->setSpecular(glm::vec4(0.5f));
+		->setSpecular(glm::vec4(0.1f));
+	shaderDataMgr->load("trimsheet_01")
+		->fillTextureSlot(0, textureMgr->get("trimsheet_01.png"))
+		->setShininess(1.0f);
+
 
 	// make a material
 	materialMgr->load("reflect_env")
@@ -91,11 +99,14 @@ void Game::onInit() {
 		->withShader(shaderMgr->get("spheremap"))
 		->withData(shaderDataMgr->get("reflect_env2"));
 	materialMgr->load("reflect_env3")
-		->withShader(shaderMgr->get("spheremap"))
+		->withShader(shaderMgr->get("plain"))
 		->withData(shaderDataMgr->get("reflect_env3"));
 	materialMgr->load("rally_track_01")
 		->withShader(shaderMgr->get("box"))
 		->withData(shaderDataMgr->get("rally_track_01"));
+	materialMgr->load("trimsheet_01")
+		->withShader(shaderMgr->get("plain"))
+		->withData(shaderDataMgr->get("trimsheet_01"));
 
 	// now add material set (a combination of material basically)
 	matsetMgr->load("reflect_env")
@@ -105,9 +116,10 @@ void Game::onInit() {
 	matsetMgr->load("reflect_env3")
 		->addMaterial(materialMgr->get("reflect_env3"));
 	matsetMgr->load("rally_track_01")
-		->addMaterial(materialMgr->get("rally_track_01"));
+		->addMaterial(materialMgr->get("rally_track_01"))
+		->addMaterial(materialMgr->get("reflect_env2"));
 	// test to create object
-	for (int i = 0; i < 35; i++) {
+	for (int i = 0; i < 5; i++) {
 		MeshObject* mo = new MeshObject(
 			meshMgr->getRandom(), 
 			matsetMgr->getRandom()
@@ -127,12 +139,14 @@ void Game::onInit() {
 		renderObjs.push_back(mo);
 	}
 
-	/*renderObjs.push_back(new MeshObject(
-		meshMgr->load("rally_track_01.bcf"),
-		matsetMgr->get("rally_track_01")
-	));*/
-
 	glEnable(GL_MULTISAMPLE);
+
+	// test
+	LargeMesh* lm = largeMeshMgr->load("split_test2.lmf");
+
+	lmo = new LargeMeshObject(lm, matsetMgr->get("rally_track_01"));
+	lmo->debug_draw = true;
+	renderObjs.push_back(lmo);
 }
 
 void Game::onDestroy() {
@@ -147,6 +161,8 @@ void Game::onDestroy() {
 	matsetMgr->printDebug();
 	SDL_Log("++MESHES++\n");
 	meshMgr->printDebug();
+	SDL_Log("++LARGE_MESHES++\n");
+	largeMeshMgr->printDebug();
 	SDL_Log("++TEXTURES++\n");
 	textureMgr->printDebug();
 
@@ -157,6 +173,7 @@ void Game::onDestroy() {
 	delete shaderMgr;
 	delete shaderDataMgr;
 	delete meshMgr;
+	delete largeMeshMgr;
 	delete materialMgr;
 	delete matsetMgr;
 	delete textureMgr;
@@ -213,6 +230,13 @@ void Game::onRender(float dt) {
 			if (ImGui::Button("QUIT")) {
 			    this->setRunFlag(false);
 			}
+
+			// debug draw
+			ImGui::Checkbox("Debug Draw", &lmo->debug_draw);
+			// active mesh?
+			ImGui::SliderInt("active_mesh", &lmo->active_mesh, 0, lmo->lm->mesh_count - 1);
+
+			// debug text
 			if (ImGui::CollapsingHeader("Debugging")) {
 				ImGui::Checkbox("Draw Debug?", &m_renderer->drawDebug);
 				ImGui::ColorEdit4("Box Color", glm::value_ptr(m_renderer->debugColor));
@@ -230,9 +254,9 @@ void Game::onRender(float dt) {
 					if (ImGui::Button("Randomize Matset")) {
 						// reset all object's matset, except the last one
 						for (int i = 0; i < renderObjs.size() - 1; i++) {
-							renderObjs[i]->ms = matsetMgr->getRandom();
+							((MeshObject*)renderObjs[i])->ms = matsetMgr->getRandom();
 						}
-						rp->generateDebugString();
+						//rp->generateDebugString();
 					}
 
 					// spawn multiple text colored, alternated color
@@ -334,12 +358,12 @@ void Game::onEvent(SDL_Event* e) {
 	        eventName = "MOUSE_UP";
 	        break;
 	}
-	if (interesting) {
+	/*if (interesting) {
 	    SDL_Log("INTERESTING_EVENT: %s, is_multigesturing: %s, ImGuiWantMouse: %s\n",
 	    		eventName.c_str(),
 	    		is_multigesturing ? "true" : "false",
 	    		io.WantCaptureMouse ? "true" : "false");
-	}
+	}*/
 
 	switch (e->type) {
     case SDL_MULTIGESTURE:

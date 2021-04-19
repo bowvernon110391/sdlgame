@@ -16,12 +16,6 @@ class RenderPass;
 /// </summary>
 class AbstractRenderObject {
 public:
-	AbstractRenderObject(Mesh*  m, MaterialSet*  ms)
-		:m(m), ms(ms)
-	{
-		assert(ms != nullptr);
-		assert(ms != nullptr);
-	}
 	// pure virtual
 	virtual void setupData(Shader* s, RenderPass* rp) = 0;
 	virtual void update(float dt) = 0;
@@ -33,11 +27,6 @@ public:
 		flags = f;
 		return this;
 	}
-
-
-	// at the base, it must have at least 
-	Mesh* m;
-	MaterialSet* ms;	// array of pair of shader + constant(and texture)
 	// just a marker
 	int flags;
 };

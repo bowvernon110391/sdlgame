@@ -6,12 +6,7 @@
 class MeshObject : public AbstractRenderObject {
 public:
 	// init base data
-	MeshObject(Mesh * m, MaterialSet * ms): 
-		AbstractRenderObject(m, ms) {
-
-		assert(m != nullptr);
-		assert(ms != nullptr);
-
+	MeshObject(Mesh * m, MaterialSet * ms): m(m), ms(ms) {
 		pos = glm::vec3(0.0f, 0.0f, 0.0f);
 		scale = glm::vec3(1.0f, 1.0f, 1.0f);
 		rot = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
@@ -25,6 +20,10 @@ public:
 	MeshObject* setPosition(const glm::vec3& p) { pos = p; return this; }
 	MeshObject* setRotation(const glm::quat& q) { rot = q; return this; }
 	MeshObject* setScale(const glm::vec3& s) { scale = s; return this; }
+
+	// at the base, it must have at least 
+	Mesh* m;
+	MaterialSet* ms;	// array of pair of shader + constant(and texture)
 protected:
 	// has position, rotation and scale
 	glm::vec3 pos;

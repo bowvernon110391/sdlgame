@@ -4,6 +4,7 @@
 #include "Texture2d.h"
 #include "Mesh.h"
 #include "Material.h"
+#include "LargeMesh.h"
 
 Shader* Game::loadShader(const char* name) {
 	std::string vsFilename = std::string(name) + ".vert";
@@ -34,4 +35,9 @@ Material* Game::loadBasicMaterial(const char* name) {
 MaterialSet* Game::loadMaterialSet(const char* name) {
 	// just return empty matset
 	return new MaterialSet();
+}
+
+LargeMesh* Game::loadLargeMesh(const char* name)
+{
+	return LargeMesh::loadLMFFromFile(name)->createBufferObjects();
 }
