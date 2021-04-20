@@ -77,6 +77,11 @@ void ColorDepthPass::generateRenderCommand()
 			// due to different attribute location
 			cmds.push_back(new RC_BindBufferObject(r.m, r.s));
 			lb = r.m;
+
+			// also since shader changes, even object shared similar data
+			// for different meshes, send the command
+			cmds.push_back(new RC_BindShaderDataFromObject(ls, r.ro, this));
+			lro = r.ro;
 		}
 
 		// maybe the shader is same, but different data?

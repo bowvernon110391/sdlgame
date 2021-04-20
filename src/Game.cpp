@@ -101,7 +101,7 @@ void Game::onInit() {
 		->withShader(shaderMgr->get("spheremap"))
 		->withData(shaderDataMgr->get("reflect_env2"));
 	materialMgr->load("reflect_env3")
-		->withShader(shaderMgr->get("plain"))
+		->withShader(shaderMgr->get("spheremap"))
 		->withData(shaderDataMgr->get("reflect_env3"));
 	materialMgr->load("rally_track_01")
 		->withShader(shaderMgr->get("box"))
@@ -122,11 +122,11 @@ void Game::onInit() {
 		->addMaterial(materialMgr->get("reflect_env3"));
 	matsetMgr->load("rally_track_01")
 		->addMaterial(materialMgr->get("rally_track_01"))
-		->addMaterial(materialMgr->get("reflect_env2"));
+		->addMaterial(materialMgr->get("trimsheet_01"));
 	matsetMgr->load("debug")
 		->addMaterial(materialMgr->get("debug"));
 	// test to create object
-	for (int i = 0; i < 15; i++) {
+	/*for (int i = 0; i < 15; i++) {
 		MeshObject* mo = new MeshObject(
 			meshMgr->getRandom(), 
 			matsetMgr->getRandom()
@@ -144,12 +144,12 @@ void Game::onInit() {
 					)))
 			);
 		renderObjs.push_back(mo);
-	}
+	}*/
 
 	glEnable(GL_MULTISAMPLE);
 
 	// test
-	LargeMesh* lm = largeMeshMgr->load("split_test2.lmf");
+	LargeMesh* lm = largeMeshMgr->load("rally_track_01.lmf");
 
 	lmo = new LargeMeshObject(lm, matsetMgr->get("rally_track_01"));
 	lmo->debug_draw = true;
