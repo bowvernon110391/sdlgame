@@ -126,7 +126,7 @@ void Game::onInit() {
 	matsetMgr->load("debug")
 		->addMaterial(materialMgr->get("debug"));
 	// test to create object
-	/*for (int i = 0; i < 15; i++) {
+	for (int i = 0; i < 10; i++) {
 		MeshObject* mo = new MeshObject(
 			meshMgr->getRandom(), 
 			matsetMgr->getRandom()
@@ -144,7 +144,7 @@ void Game::onInit() {
 					)))
 			);
 		renderObjs.push_back(mo);
-	}*/
+	}
 
 	glEnable(GL_MULTISAMPLE);
 
