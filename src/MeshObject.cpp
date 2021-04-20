@@ -103,3 +103,9 @@ void MeshObject::fillRenderable(std::vector<Renderable>& bucket)
 		bucket.push_back(r);
 	}
 }
+
+void MeshObject::getDebugAABB(std::vector<AABB>& bboxes)
+{
+	AABB t = m->boundingBox.transform(pos, rot);
+	bboxes.push_back(t);
+}

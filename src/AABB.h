@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 class AABB {
 public: 
@@ -38,9 +39,59 @@ public:
 	}
 
 	// surface area of AABB
-	float area() {
+	float area() const {
 		glm::vec3 d = max - min;
 		return 2.0f * (d.x * d.y + d.y * d.z + d.x * d.z);
+	}
+
+	// volume of AABB
+	float volume() const {
+		glm::vec3 d = max - min;
+		return (d.x * d.y * d.z);
+	}
+
+	// get transformed aabb
+	AABB transform(const glm::vec3& pos, const glm::quat& rot) const {
+		// compute transformed center?
+		glm::vec3 center = ((min + max) * 0.5f);
+		glm::vec4 t_center = glm::vec4(center, 1.0f);
+		t_center = glm::rotate(rot, t_center);
+		center = pos + glm::vec3(t_center);
+
+		// now compute half extent in local space, and rotate it?
+		glm::vec3 e = (max - min) * 0.5f;
+
+		const glm::vec3 modifiers[] = {
+			glm::vec3(1,1,1),
+			glm::vec3(-1,-1,1),
+			glm::vec3(1,-1,-1),
+			glm::vec3(-1,1,-1),
+		};
+
+		glm::vec3 newMin, newMax;
+
+		// init extent
+		glm::vec4 re = glm::rotate(rot, glm::vec4(e, 1.0f));
+		newMin = glm::vec3(glm::min(re.x, -re.x), glm::min(re.y, -re.y), glm::min(re.z, -re.z));
+		newMax = glm::vec3(glm::max(re.x, -re.x), glm::max(re.y, -re.y), glm::max(re.z, -re.z));
+
+		for (int i = 1; i < 4; i++) {
+			re = glm::rotate(rot, glm::vec4(e * modifiers[i], 1.0f));
+
+			newMin.x = glm::min(glm::min(re.x, -re.x), newMin.x);
+			newMin.y = glm::min(glm::min(re.y, -re.y), newMin.y);
+			newMin.z = glm::min(glm::min(re.z, -re.z), newMin.z);
+
+			newMax.x = glm::max(glm::max(re.x, -re.x), newMax.x);
+			newMax.y = glm::max(glm::max(re.y, -re.y), newMax.y);
+			newMax.z = glm::max(glm::max(re.z, -re.z), newMax.z);
+		}
+
+		// offset by the right center
+		newMin += center;
+		newMax += center;
+
+		return AABB(newMin, newMax);
 	}
 
 	// return union of two aabb
