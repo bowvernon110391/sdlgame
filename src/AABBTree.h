@@ -34,10 +34,69 @@ public:
 		return parent->left == this ? parent->right : parent->left;
 	}
 
+	// can we rotate?
+	bool canRotate() const {
+		if (isLeaf()) return false;
+		if (left->isLeaf() && right->isLeaf()) return false;
+		return true;
+	}
+
+	AABB potentialRotatedBox() const {
+		if (!canRotate()) {
+			return AABB();
+		}
+
+		// compute for real?
+		float c1, c2;
+		AABBNode* cd1, * cd2;
+		c1 = left->potentialReduction(&cd1);
+		c2 = right->potentialReduction(&cd2);
+		AABB best;
+		if (c1 > c2 && c1 > 0.f) {
+			return AABB::combined(cd1->bbox, right->bbox);
+		}
+		else if (c2 > 0.f) {
+			return AABB::combined(cd2->bbox, left->bbox);
+		}
+
+		return AABB();
+	}
+
 	// cost of combination with other node
 	float computeCost(const AABBNode* other) const {
 		// return computed cost
 		return AABB::combined(bbox, other->bbox).area();
+	}
+
+	// reduction in cost if we're swapping child with sibling
+	float potentialReduction(AABBNode** candidate=nullptr) {
+		if (isLeaf()) {
+			return 0.f;
+		}
+
+		AABBNode* s = sibling();
+		// if we have no sibling, cannot reduce (root)
+		if (!s) {
+			return 0.f;
+		}
+
+		// compute the greatest reduction
+		float initSA = bbox.area();
+		float reducedLeft = initSA - AABB::combined(left->bbox, s->bbox).area();
+		reducedLeft = reducedLeft < 0 ? 0 : reducedLeft;
+		float reducedRight = initSA - AABB::combined(right->bbox, s->bbox).area();
+		reducedRight = reducedRight < 0 ? 0 : reducedRight;
+
+		// which is greater?
+		if (reducedLeft > reducedRight) {
+			if (candidate)
+				*candidate = left;
+			return reducedLeft;
+		}
+
+		if (candidate)
+			*candidate = right;
+		return reducedRight;
 	}
 
 	// returns true if bbox changed
@@ -58,52 +117,75 @@ public:
 	bool rotate() {
 		// if only two rotation possible, sibling vs left, sibling vs right
 		// and only possible if we have parent and we have children (not leaf)
-		if (!parent || isLeaf())
+		if (isLeaf()) {
+#ifdef _DEBUG
+			printf("TREE_ROTATE: Node[%X] is leaf!\n", this);
+#endif // _DEBUG
 			return false;
-		// initial cost = our SA
-		float currentCost = bbox.area();
-		AABBNode* s = sibling();
-		AABBNode* candidate = nullptr;
-		bool rotated = false;
-		// 1st case, sibling vs left
-		float cost = s->computeCost(left);
-		// rotate it?
-		// measure left
-		if (cost < currentCost) {
-			currentCost = cost;
-			candidate = left;
 		}
-		// measure right
-		cost = s->computeCost(right);
-		if (cost < currentCost) {
-			currentCost = cost;
-			candidate = right;
+		// if both children are leaves, don't do shit
+		if (left->isLeaf() && right->isLeaf()) {
+#ifdef _DEBUG
+			printf("TREE_ROTATE: Node[%X] children are all leaves!\n", this);
+#endif // _DEBUG
+			return false;
+		}
+		// at least one of the child is a branch!, so build possibilities
+		AABBNode* p1 = nullptr, * p2 = nullptr;
+		AABBNode* c1, * c2;
+		float redLeft = left->potentialReduction(&c1);
+		float redRight = right->potentialReduction(&c2);
+
+		if (redLeft > redRight && redLeft > 0.0f) {
+			// do left rotation?
+#ifdef _DEBUG
+			printf("TREE_ROTATE: Node[%X] Left Rotate with (%X)\n", this, c1);
+#endif // _DEBUG
+			p1 = left;
+			p2 = c1;
+		} else if (redRight > 0.0f) {
+			// do right rotation?
+#ifdef _DEBUG
+			printf("TREE_ROTATE: Node[%X] Right Rotate with (%X)\n", this, c2);
+#endif // _DEBUG
+			p1 = right;
+			p2 = c2;
 		}
 
-		// do we rotate?
-		if (candidate) {
-			// perform rotation
-			// left rotation
-			if (s->parent->left == s) {
-				// s is left node
-				s->parent->left = candidate;
-			}
-			else {
-				// s is right node
-				s->parent->right = candidate;
-			}
-			candidate->parent = s->parent;
+		// do the rotation?
+		if (p1 && p2) {
+			// p1 always higher than p2
+			// p2.grandParent = p1.parent
 
-			if (candidate == left) {	
-				left = s;
+			// high to low relations first
+			if (p1->parent->left == p1) {
+				p1->parent->left = p2;
 			}
 			else {
-				// right rotation
-				right = s;
+				p1->parent->right = p2;
 			}
-			s->parent = this;
-			return true;
+
+			if (p2->parent->left == p2) {
+				p2->parent->left = p1;
+			}
+			else {
+				p2->parent->right = p1;
+			}
+
+			// now low to high relations...
+			AABBNode* tmp = p1->parent;
+			p1->parent = p2->parent;
+			p2->parent = tmp;
+			// update aabb for p1's new parent
+			p1->parent->refit();
+			p2->parent->refit();
 		}
+#ifdef _DEBUG
+		else {
+			printf("TREE_ROTATE: Node[%X] (NO POSSIBLE ROTATION)!\n", this);
+		}
+#endif // _DEBUG
+
 		return false;
 	}
 
@@ -140,6 +222,7 @@ public:
 	AABBTree() {
 		objs.clear();
 		root = nullptr;
+		selected = nullptr;
 	}
 	~AABBTree() {
 		// do we own the render objects? nope. so just clear containers
@@ -181,6 +264,14 @@ public:
 		}
 	}
 
+	void setDebugBox(const AABB& b) {
+		dbgBest = b;
+	}
+
+	void resetDebugBox() {
+		dbgBest = AABB();
+	}
+
 	// operations
 	AABBNode* insert(AABBNode* n);
 	void remove(AABBNode* n);
@@ -189,6 +280,9 @@ public:
 	// first, vector of aabb tree?
 	std::unordered_map<const AbstractRenderObject*, AABBNode*> objs;
 	AABBNode* root;
+	AABBNode* selected;
+
+	AABB dbgBest;
 
 protected:
 	// return best node

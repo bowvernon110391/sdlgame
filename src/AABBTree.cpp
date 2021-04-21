@@ -7,6 +7,9 @@
 
 void AABBTree::debugDraw(Renderer* r)
 {
+    if (!root)
+        return;
+
     // some colors?
     const glm::vec4 colors[] = {
         glm::vec4(1.f, 0.f, 0.f, 1.f),
@@ -53,6 +56,12 @@ void AABBTree::debugDraw(Renderer* r)
         }
         // set shader color
         glm::vec4 col = colors[lastColor];
+
+        // if it's selected, change to white and thicken!
+        if (n == selected) {
+            col = glm::vec4(1.f);
+        }
+
         glUniform4fv(u_loc, 1, glm::value_ptr(col));
 
         // generate debug draw data
@@ -67,6 +76,12 @@ void AABBTree::debugDraw(Renderer* r)
             q.push(n->right);
         }
     }
+
+    // draw dbgBest
+    glUniform4f(u_loc, 0, 0, 0, 1.f);
+    r->generateDebugData(dbgBest);
+    // draw call
+    glDrawElements(GL_LINES, 24, GL_UNSIGNED_SHORT, (void*)0);
 }
 
 AABBNode* AABBTree::insert(AABBNode* n)
@@ -79,6 +94,10 @@ AABBNode* AABBTree::insert(AABBNode* n)
     // if no best node, then we have nothing. set to root
     if (!bestNode) {
         root = n;
+#ifdef _DEBUG
+        printf("TREE_INSERT: NEW_ROOT[%X]!\n", n);
+#endif // _DEBUG
+
         return n;
     }
 
@@ -100,6 +119,9 @@ AABBNode* AABBTree::insert(AABBNode* n)
     // if old parent is null, then we need to promote newparent to root
     if (!oldParent) {
         root = newParent;
+#ifdef _DEBUG
+        printf("TREE_INSERT: NEW_PARENT_TO_ROOT[%X]!\n", root);
+#endif // _DEBUG
         return root;
     }
 
@@ -114,12 +136,13 @@ AABBNode* AABBTree::insert(AABBNode* n)
 
     // here we need to refit old parent, rotating it if possible
     AABBNode* ptr = oldParent;
-    bool updateAABB = true;
-    bool rotated = true;
+
+    // rotate just this one
     while (ptr) {
-        // rotate, and refit
-        rotated = ptr->rotate();
-        updateAABB = ptr->refit();
+        // refit and propagate
+        ptr->refit();
+        //ptr->rotate();
+
         // if at least we update aabb or rotated, then keep propagating
         // upwards. otherwise, stop (LATER MAYBE!!!)
         // maybe call the sibling to rotate too?

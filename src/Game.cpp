@@ -127,13 +127,6 @@ void Game::onInit() {
 	matsetMgr->load("debug")
 		->addMaterial(materialMgr->get("debug"));
 
-	// create aabb tree
-	tree = new AABBTree();
-
-	// test to create object
-	for (int i = 0; i < 2; i++) {
-		spawnRandomObject();
-	}
 
 	// debug print
 	glEnable(GL_MULTISAMPLE);
@@ -145,6 +138,13 @@ void Game::onInit() {
 	lmo->debug_draw = true;
 	renderObjs.push_back(lmo);
 
+	// create aabb tree
+	tree = new AABBTree();
+
+	// test to create object
+	/*for (int i = 0; i < 0; i++) {
+		spawnRandomObject();
+	}*/
 	SDL_Log("DEBUG_PRINT_AABB_TREE!!\n");
 	tree->debugPrint();
 }
@@ -174,6 +174,9 @@ void Game::spawnRandomObject() {
 
 void Game::debugPrint(AABBNode* n)
 {
+	if (!n) 
+		return;
+
 	char tmp[256];
 	sprintf(tmp, "%X: %s%s", (size_t)n, n->isRoot() ? "[ROOT]" : "", n->isLeaf() ? "[LEAF]" : "");
 
@@ -181,6 +184,20 @@ void Game::debugPrint(AABBNode* n)
 		// print aabb
 		const AABB& b = n->bbox;
 		ImGui::Text("aabb(%.2f %.2f %.2f | %.2f %.2f %.2f)", b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z);
+
+		// button to select?
+		if (ImGui::Button("SELECT")) {
+			tree->selected = n;
+		}
+		
+		if (n->canRotate()) {
+			ImGui::SameLine();
+			if (ImGui::Button("ROTATE")) {
+				// do something
+				SDL_Log("SHOULD ROTATE HERE!");
+				tree->setDebugBox(n->potentialRotatedBox());
+			}
+		}
 
 		// child render too
 		if (!n->isLeaf()) {
@@ -270,9 +287,10 @@ void Game::onRender(float dt) {
 			title += "MOUSE_CLEAR";
 		}
 
-		ImGui::Begin("TREE_STRUCTURE");
+		ImGui::Begin("TREE_STRUCTURE", 0, ImGuiWindowFlags_AlwaysAutoResize);
 
-		debugPrint(tree->root);
+		if (tree->root)
+			debugPrint(tree->root);
 
 		ImGui::End();
 
@@ -290,6 +308,10 @@ void Game::onRender(float dt) {
 			}
 			if (ImGui::Button("PRINT_TREE")) {
 				tree->debugPrint();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("RESET_DBG")) {
+				tree->resetDebugBox();
 			}
 
 			// debug draw
