@@ -63,11 +63,13 @@ void Game::onInit() {
 	meshMgr->put("cube", Mesh::createUnitBox()->createBufferObjects());
 	meshMgr->load("weirdcube.bcf");
 	meshMgr->load("weirdsphere.bcf");
+	meshMgr->load("sphere.bcf");
 
 	// load a shader
 	shaderMgr->load("box");
 	shaderMgr->load("plain");
 	shaderMgr->load("spheremap");
+	shaderMgr->load("phong");
 
 	// load textures
 	textureMgr->load("env.jpg");
@@ -92,6 +94,10 @@ void Game::onInit() {
 		->setShininess(1.0f);
 	shaderDataMgr->load("debug")
 		->setDiffuse(glm::vec4(1.f, 0.f, 0.f, 1.f));
+	shaderDataMgr->load("phong")
+		->setDiffuse(glm::vec4(.2f, .2f, .2f, 1.f))
+		->setSpecular(glm::vec4(1.f, 1.f, 1.f, 1.f))
+		->setShininess(100.f);
 
 
 	// make a material
@@ -113,7 +119,9 @@ void Game::onInit() {
 	materialMgr->load("debug")
 		->withShader(m_renderer->getDebugShader())
 		->withData(shaderDataMgr->get("debug"));
-
+	materialMgr->load("phong")
+		->withShader(shaderMgr->get("phong"))
+		->withData(shaderDataMgr->get("phong"));
 	// now add material set (a combination of material basically)
 	matsetMgr->load("reflect_env")
 		->addMaterial(materialMgr->get("reflect_env"));
@@ -126,7 +134,8 @@ void Game::onInit() {
 		->addMaterial(materialMgr->get("trimsheet_01"));
 	matsetMgr->load("debug")
 		->addMaterial(materialMgr->get("debug"));
-
+	matsetMgr->load("phong")
+		->addMaterial(materialMgr->get("phong"));
 
 	// debug print
 	glEnable(GL_MULTISAMPLE);
@@ -307,17 +316,27 @@ void Game::onRender(float dt) {
 			title += "MOUSE_CLEAR";
 		}
 
+		// window to render tree structure
 		ImGui::Begin("TREE_STRUCTURE", 0, ImGuiWindowFlags_AlwaysAutoResize);
-
-		ImGui::Text("FB_SIZE: %.2f, %.2f", 
-			io.DisplaySize.x * io.DisplayFramebufferScale.x, 
-			io.DisplaySize.y * io.DisplayFramebufferScale.y);
-
-		if (tree->root)
-			debugPrint(tree->root);
-
+			ImGui::Text("FB_SIZE: %.2f, %.2f", 
+				io.DisplaySize.x * io.DisplayFramebufferScale.x, 
+				io.DisplaySize.y * io.DisplayFramebufferScale.y);
+			if (tree->root)
+				debugPrint(tree->root);
 		ImGui::End();
 
+		// window for material editing (phong)
+		ImGui::Begin("MATERIAL: phong", 0, ImGuiWindowFlags_AlwaysAutoResize);
+		{
+			// diffuse, specular, and shininess
+			Material* mat = materialMgr->get("phong");
+			ImGui::ColorEdit4("diffuse", glm::value_ptr(mat->shData->diffuseColor), ImGuiColorEditFlags_Float);
+			ImGui::ColorEdit4("specular", glm::value_ptr(mat->shData->specularColor), ImGuiColorEditFlags_Float);
+			ImGui::SliderFloat("exponent", &mat->shData->shininess, 0.f, 255.f);
+		}
+		ImGui::End();
+
+		// window app config
 		ImGui::Begin("App Config", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 			ImGui::TextColored(ImVec4(1, 1, 0, 1), "FPS: %d", fps);
 			ImGui::SameLine();
@@ -338,8 +357,18 @@ void Game::onRender(float dt) {
 				tree->resetDebugBox();
 			}
 			ImGui::SameLine();
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.2f, .0f, .0f, 1.f));
 			if (ImGui::Button("DELTREE")) {
 				clearTrees();
+			}
+			ImGui::PopStyleColor();
+			ImGui::SameLine();
+			if (ImGui::Button("SUNFROMCAM")) {
+				// set sun direction from camera
+				m_renderer->getSceneData()
+					->setSunDirection(
+						-glm::normalize(m_renderer->getCamera()->getDir())
+					);
 			}
 
 			// debug draw

@@ -46,6 +46,9 @@ public:
 	const glm::vec3& getPosition() const { return eye;  }
 	const glm::vec3& getTarget() const { return target;  }
 	const glm::vec3& getUp() const { return up;  }
+	glm::vec3 getDir() const {
+		return target - eye;
+	}
 
 protected:
 	// what does a camera have?
