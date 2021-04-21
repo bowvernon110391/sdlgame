@@ -41,27 +41,6 @@ public:
 		return true;
 	}
 
-	AABB potentialRotatedBox() const {
-		if (!canRotate()) {
-			return AABB();
-		}
-
-		// compute for real?
-		float c1, c2;
-		AABBNode* cd1, * cd2;
-		c1 = left->potentialReduction(&cd1);
-		c2 = right->potentialReduction(&cd2);
-		AABB best;
-		if (c1 > c2 && c1 > 0.f) {
-			return AABB::combined(cd1->bbox, right->bbox);
-		}
-		else if (c2 > 0.f) {
-			return AABB::combined(cd2->bbox, left->bbox);
-		}
-
-		return AABB();
-	}
-
 	// cost of combination with other node
 	float computeCost(const AABBNode* other) const {
 		// return computed cost
@@ -113,6 +92,28 @@ public:
 		return bbox.area() != SA;
 	}
 
+	// this is what the aabb is like when rotation occurs
+	AABB potentialRotatedBox() const {
+		if (!canRotate()) {
+			return AABB();
+		}
+
+		// compute for real?
+		float c1, c2;
+		AABBNode* cd1, * cd2;
+		c1 = left->potentialReduction(&cd1);
+		c2 = right->potentialReduction(&cd2);
+
+		if (c1 > c2 && c1 > 0.f) {
+			return AABB::combined(cd1->bbox, right->bbox);
+		}
+		else if (c2 > 0.f) {
+			return AABB::combined(cd2->bbox, left->bbox);
+		}
+
+		return AABB();
+	}
+
 	// do some kind of rotation? return true if we do rotation
 	bool rotate() {
 		// if only two rotation possible, sibling vs left, sibling vs right
@@ -141,44 +142,45 @@ public:
 #ifdef _DEBUG
 			printf("TREE_ROTATE: Node[%X] Left Rotate with (%X)\n", this, c1);
 #endif // _DEBUG
-			p1 = left;
+			p1 = right;
 			p2 = c1;
 		} else if (redRight > 0.0f) {
 			// do right rotation?
 #ifdef _DEBUG
 			printf("TREE_ROTATE: Node[%X] Right Rotate with (%X)\n", this, c2);
 #endif // _DEBUG
-			p1 = right;
+			p1 = left;
 			p2 = c2;
 		}
 
-		// do the rotation?
+		// do the rotation? NOPE! p1 and p2 must be grouped together!!
 		if (p1 && p2) {
 			// p1 always higher than p2
 			// p2.grandParent = p1.parent
 
-			// high to low relations first
-			if (p1->parent->left == p1) {
-				p1->parent->left = p2;
+			// grab the old parent, and whos gon git thrown away
+			AABBNode* oldParent = p2->parent;
+			AABBNode* orphan = oldParent->left == p2 ? oldParent->right : oldParent->left;
+
+			// change p1
+			if (p1 == left) {
+				left = orphan;
 			}
 			else {
-				p1->parent->right = p2;
+				right = orphan;
 			}
+			orphan->parent = this;
 
-			if (p2->parent->left == p2) {
-				p2->parent->left = p1;
+			// let p1 take the orphan's place
+			if (oldParent->left == orphan) {
+				oldParent->left = p1;
 			}
 			else {
-				p2->parent->right = p1;
+				oldParent->right = p1;
 			}
-
-			// now low to high relations...
-			AABBNode* tmp = p1->parent;
-			p1->parent = p2->parent;
-			p2->parent = tmp;
-			// update aabb for p1's new parent
-			p1->parent->refit();
-			p2->parent->refit();
+			p1->parent = oldParent;
+			oldParent->refit();
+			return true;
 		}
 #ifdef _DEBUG
 		else {

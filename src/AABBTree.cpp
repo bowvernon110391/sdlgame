@@ -141,7 +141,7 @@ AABBNode* AABBTree::insert(AABBNode* n)
     while (ptr) {
         // refit and propagate
         ptr->refit();
-        //ptr->rotate();
+        ptr->rotate();
 
         // if at least we update aabb or rotated, then keep propagating
         // upwards. otherwise, stop (LATER MAYBE!!!)

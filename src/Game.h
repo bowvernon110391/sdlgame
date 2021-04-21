@@ -39,6 +39,7 @@ private:
     void endRenderImGui();
 
     void spawnRandomObject();
+    void clearTrees();
     void debugPrint(AABBNode* n);
 
     // some of our loaders, not necessarily a file

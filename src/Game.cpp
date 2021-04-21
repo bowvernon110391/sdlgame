@@ -172,6 +172,18 @@ void Game::spawnRandomObject() {
 	tree->insert(new AABBNode(mo));
 }
 
+void Game::clearTrees()
+{
+	// delete all in objects?
+	for (int i = 1; i < renderObjs.size(); i++) {
+		delete renderObjs.at(i);
+	}
+	renderObjs.resize(1);
+
+	delete tree;
+	tree = new AABBTree();
+}
+
 void Game::debugPrint(AABBNode* n)
 {
 	if (!n) 
@@ -180,7 +192,7 @@ void Game::debugPrint(AABBNode* n)
 	char tmp[256];
 	sprintf(tmp, "%X: %s%s", (size_t)n, n->isRoot() ? "[ROOT]" : "", n->isLeaf() ? "[LEAF]" : "");
 
-	if (ImGui::TreeNode(n, tmp)) {
+	if (ImGui::TreeNode(n, "%s", tmp)) {
 		// print aabb
 		const AABB& b = n->bbox;
 		ImGui::Text("aabb(%.2f %.2f %.2f | %.2f %.2f %.2f)", b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z);
@@ -192,11 +204,19 @@ void Game::debugPrint(AABBNode* n)
 		
 		if (n->canRotate()) {
 			ImGui::SameLine();
-			if (ImGui::Button("ROTATE")) {
+			if (ImGui::Button("CHK")) {
 				// do something
 				SDL_Log("SHOULD ROTATE HERE!");
 				tree->setDebugBox(n->potentialRotatedBox());
 			}
+
+			ImGui::SameLine();
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.5f, .0f, .0f, 1.f));
+			if (ImGui::Button("ROT")) {
+				// do something here
+				n->rotate();
+			}
+			ImGui::PopStyleColor();
 		}
 
 		// child render too
@@ -289,6 +309,8 @@ void Game::onRender(float dt) {
 
 		ImGui::Begin("TREE_STRUCTURE", 0, ImGuiWindowFlags_AlwaysAutoResize);
 
+		ImGui::Text("FB_SCALE: %.2f, %.2f", io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+
 		if (tree->root)
 			debugPrint(tree->root);
 
@@ -313,6 +335,10 @@ void Game::onRender(float dt) {
 			if (ImGui::Button("RESET_DBG")) {
 				tree->resetDebugBox();
 			}
+			ImGui::SameLine();
+			if (ImGui::Button("DELTREE")) {
+				clearTrees();
+			}
 
 			// debug draw
 			ImGui::Checkbox("Draw Active Mesh Only", &lmo->debug_draw);
@@ -336,7 +362,7 @@ void Game::onRender(float dt) {
 					// set random matset
 					if (ImGui::Button("Randomize Matset")) {
 						// reset all object's matset, except the last one
-						for (int i = 0; i < renderObjs.size() - 1; i++) {
+						for (int i = 1; i < renderObjs.size(); i++) {
 							((MeshObject*)renderObjs[i])->ms = matsetMgr->getRandom();
 						}
 						//rp->generateDebugString();
