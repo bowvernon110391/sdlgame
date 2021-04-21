@@ -109,3 +109,8 @@ void MeshObject::getDebugAABB(std::vector<AABB>& bboxes)
 	AABB t = m->boundingBox.transform(pos, rot);
 	bboxes.push_back(t);
 }
+
+AABB MeshObject::getBoundingBox() const
+{
+	return m->boundingBox.transform(pos, rot);
+}

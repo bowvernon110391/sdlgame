@@ -149,6 +149,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\AABBTree.cpp" />
     <ClCompile Include="..\src\App.cpp" />
     <ClCompile Include="..\src\bullet\btBulletCollisionAll.cpp" />
     <ClCompile Include="..\src\bullet\btBulletDynamicsAll.cpp" />
@@ -180,6 +181,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\AABB.h" />
+    <ClInclude Include="..\src\AABBTree.h" />
     <ClInclude Include="..\src\AbstractRenderObject.h" />
     <ClInclude Include="..\src\App.h" />
     <ClInclude Include="..\src\bullet\btBulletCollisionCommon.h" />

@@ -18,6 +18,8 @@ public:
 	virtual void preRender(float dt) override;
 	virtual void fillRenderable(std::vector<Renderable>& bucket) override;
 	virtual void getDebugAABB(std::vector<AABB>& bboxes) override;
+	// Inherited via AbstractRenderObject
+	virtual AABB getBoundingBox() const override;
 
 	// some data
 	LargeMesh* lm;

@@ -139,3 +139,9 @@ void LargeMeshObject::getDebugAABB(std::vector<AABB>& bboxes)
 		}
 	}
 }
+
+AABB LargeMeshObject::getBoundingBox() const
+{
+	// just return the root's aabb? since clipping is per object base :p
+	return lm->nodes[0].bbox;
+}

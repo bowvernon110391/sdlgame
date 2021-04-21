@@ -13,7 +13,8 @@ class Material;
 class Texture2D;
 class MaterialSet;
 class LargeMesh;
-
+class AABBTree;
+class AABBNode;
 
 // #define GLM_FORCE_MESSAGES
 
@@ -36,6 +37,9 @@ private:
     void destroyImGui();
     void beginRenderImGui();
     void endRenderImGui();
+
+    void spawnRandomObject();
+    void debugPrint(AABBNode* n);
 
     // some of our loaders, not necessarily a file
     static Shader* loadShader(const char* name);
@@ -61,6 +65,8 @@ private:
     std::vector<AbstractRenderObject*> renderObjs;
 
     float cam_horzRot, cam_vertRot, cam_dist;
+
+    AABBTree* tree;
 };
 
 

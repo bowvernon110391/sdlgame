@@ -22,9 +22,10 @@ public:
 	virtual void setupData(Shader* s, RenderPass* rp) = 0;
 	virtual void update(float dt) = 0;
 	virtual void preRender(float dt) = 0;
-	virtual void fillRenderable(std::vector<Renderable> &bucket) = 0;
+	virtual void fillRenderable(std::vector<Renderable> &bucket)  = 0;
 	// used by debug pass (fill one or more aabbs)
 	virtual void getDebugAABB(std::vector<AABB> &bboxes) {}
+	virtual AABB getBoundingBox() const = 0;
 
 	// some basic?
 	virtual AbstractRenderObject* setFlags(int f) {

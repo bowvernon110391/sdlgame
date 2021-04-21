@@ -17,6 +17,8 @@ public:
 	virtual void preRender(float dt) override;
 	virtual void fillRenderable(std::vector<Renderable>& bucket) override;
 	virtual void getDebugAABB(std::vector<AABB>& bboxes) override;
+	// Inherited via AbstractRenderObject
+	virtual AABB getBoundingBox() const override;
 
 	MeshObject* setPosition(const glm::vec3& p) { pos = p; return this; }
 	MeshObject* setRotation(const glm::quat& q) { rot = q; return this; }
@@ -30,4 +32,5 @@ protected:
 	glm::vec3 pos;
 	glm::quat rot;
 	glm::vec3 scale;
+
 };

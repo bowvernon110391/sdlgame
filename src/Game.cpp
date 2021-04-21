@@ -21,6 +21,7 @@
 #include "ResourceManager.h"
 #include "MeshObject.h"
 #include "LargeMeshObject.h"
+#include "AABBTree.h"
 
 Game::Game() {
 	cam_horzRot = 30;
@@ -125,27 +126,16 @@ void Game::onInit() {
 		->addMaterial(materialMgr->get("trimsheet_01"));
 	matsetMgr->load("debug")
 		->addMaterial(materialMgr->get("debug"));
-	// test to create object
-	for (int i = 0; i < 10; i++) {
-		MeshObject* mo = new MeshObject(
-			meshMgr->getRandom(), 
-			matsetMgr->getRandom()
-		);
 
-		mo->setPosition(glm::sphericalRand(10.0f) * glm::vec3(1, 0.2, 1) + glm::vec3(0, 4, 0))
-			->setRotation(
-				glm::angleAxis(
-					glm::radians(
-						glm::gaussRand(0.0f, 45.0f)
-					), glm::normalize(glm::vec3(
-						glm::gaussRand(0.0f, 1.0f),
-						glm::gaussRand(0.0f, 1.0f),
-						glm::gaussRand(0.0f, 1.0f)
-					)))
-			);
-		renderObjs.push_back(mo);
+	// create aabb tree
+	tree = new AABBTree();
+
+	// test to create object
+	for (int i = 0; i < 2; i++) {
+		spawnRandomObject();
 	}
 
+	// debug print
 	glEnable(GL_MULTISAMPLE);
 
 	// test
@@ -154,6 +144,52 @@ void Game::onInit() {
 	lmo = new LargeMeshObject(lm, matsetMgr->get("rally_track_01"));
 	lmo->debug_draw = true;
 	renderObjs.push_back(lmo);
+
+	SDL_Log("DEBUG_PRINT_AABB_TREE!!\n");
+	tree->debugPrint();
+}
+
+void Game::spawnRandomObject() {
+	MeshObject* mo = new MeshObject(
+		meshMgr->getRandom(),
+		matsetMgr->getRandom()
+	);
+
+	mo->setPosition(glm::sphericalRand(5.f) * glm::vec3(1, 1, 1) + glm::vec3(0, 0, 0))
+		->setRotation(
+			glm::angleAxis(
+				glm::radians(
+					glm::gaussRand(0.0f, 45.0f)
+				), glm::normalize(glm::vec3(
+					glm::gaussRand(0.0f, 1.0f),
+					glm::gaussRand(0.0f, 1.0f),
+					glm::gaussRand(0.0f, 1.0f)
+				)))
+		);
+	renderObjs.push_back(mo);
+
+	// add to tree?
+	tree->insert(new AABBNode(mo));
+}
+
+void Game::debugPrint(AABBNode* n)
+{
+	char tmp[256];
+	sprintf(tmp, "%X: %s%s", (size_t)n, n->isRoot() ? "[ROOT]" : "", n->isLeaf() ? "[LEAF]" : "");
+
+	if (ImGui::TreeNode(n, tmp)) {
+		// print aabb
+		const AABB& b = n->bbox;
+		ImGui::Text("aabb(%.2f %.2f %.2f | %.2f %.2f %.2f)", b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z);
+
+		// child render too
+		if (!n->isLeaf()) {
+			debugPrint(n->left);
+			debugPrint(n->right);
+		}
+
+		ImGui::TreePop();
+	}
 }
 
 void Game::onDestroy() {
@@ -184,6 +220,8 @@ void Game::onDestroy() {
 	delete materialMgr;
 	delete matsetMgr;
 	delete textureMgr;
+	// delete tree
+	delete tree;
 
 	// delete render objects (unmanaged)
 	for (auto it = renderObjs.begin(); it != renderObjs.end(); ++it) { 
@@ -212,6 +250,9 @@ void Game::onRender(float dt) {
 	// 3d renderer
 	m_renderer->draw(this->renderObjs, dt);
 
+	// debug draw aabb tree
+	tree->debugDraw(m_renderer);
+
 	// 2d rendering
 	glDisable(GL_DEPTH_TEST);
 	beginRenderImGui();
@@ -229,6 +270,12 @@ void Game::onRender(float dt) {
 			title += "MOUSE_CLEAR";
 		}
 
+		ImGui::Begin("TREE_STRUCTURE");
+
+		debugPrint(tree->root);
+
+		ImGui::End();
+
 		ImGui::Begin("App Config", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 			ImGui::TextColored(ImVec4(1, 1, 0, 1), "FPS: %d", fps);
 			ImGui::SameLine();
@@ -236,6 +283,13 @@ void Game::onRender(float dt) {
 			ImGui::SameLine();
 			if (ImGui::Button("QUIT")) {
 			    this->setRunFlag(false);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("ADD OBJ")) {
+				this->spawnRandomObject();
+			}
+			if (ImGui::Button("PRINT_TREE")) {
+				tree->debugPrint();
 			}
 
 			// debug draw
