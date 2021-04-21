@@ -17,7 +17,12 @@ uniform vec4 sun_specular_color;
 uniform float material_shininess;
 uniform vec4 material_specular;
 
+const float GAMMA = 2.2;
+
 vec4 computeFinalColor(vec4 baseDiffuse) {
+	// gamma decode our color from texture
+	vec4 gamma_decoded = pow(baseDiffuse, vec4(vec3(GAMMA), 1.0));
+	
 	vec3 n_normal = normalize(vNormal);
 	float dp = max(0.0, dot(n_normal, vSunDirection));
 	
@@ -29,8 +34,9 @@ vec4 computeFinalColor(vec4 baseDiffuse) {
 	
 	// final is (amb + diff) * color + spec * sunspec
 	vec4 specularTerm = (sun_specular_color * spec) * material_specular;
-	vec4 finalColor = (scene_ambient_color + (sun_diffuse_color * dp) ) * baseDiffuse + specularTerm;
-	return finalColor;
+	vec4 finalColor = (scene_ambient_color + (sun_diffuse_color * dp) ) * gamma_decoded + specularTerm;
+	
+	return pow(finalColor, vec4(vec3(1.0/GAMMA), 1.0));
 }
 
 void main() {

@@ -86,7 +86,7 @@ void Game::onInit() {
 	shaderDataMgr->load("rally_track_01")
 		->fillTextureSlot(0, textureMgr->get("road_on_grass.png"))
 		->setShininess(50.1f)
-		->setSpecular(glm::vec4(0.1f));
+		->setSpecular(glm::vec4(0.3f));
 	shaderDataMgr->load("trimsheet_01")
 		->fillTextureSlot(0, textureMgr->get("trimsheet_01.png"))
 		->setShininess(1.0f);
@@ -309,7 +309,9 @@ void Game::onRender(float dt) {
 
 		ImGui::Begin("TREE_STRUCTURE", 0, ImGuiWindowFlags_AlwaysAutoResize);
 
-		ImGui::Text("FB_SCALE: %.2f, %.2f", io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+		ImGui::Text("FB_SIZE: %.2f, %.2f", 
+			io.DisplaySize.x * io.DisplayFramebufferScale.x, 
+			io.DisplaySize.y * io.DisplayFramebufferScale.y);
 
 		if (tree->root)
 			debugPrint(tree->root);
@@ -319,7 +321,7 @@ void Game::onRender(float dt) {
 		ImGui::Begin("App Config", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 			ImGui::TextColored(ImVec4(1, 1, 0, 1), "FPS: %d", fps);
 			ImGui::SameLine();
-			ImGui::Text("%s", title.c_str());
+			ImGui::Text("%s (%.2f, %.2f)", title.c_str(), io.MousePos.x, io.MousePos.y);
 			ImGui::SameLine();
 			if (ImGui::Button("QUIT")) {
 			    this->setRunFlag(false);

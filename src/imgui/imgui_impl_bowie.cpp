@@ -14,8 +14,6 @@ static bool showVirtualKeyboard = false;
 static SDL_Window* wndApp = 0;
 static TouchData touchData;
 static bool useTouchScreen = false;
-static int width = 0;
-static int height = 0;
 
 Texture2D* getFontTexture() {
 	return fontTexture;
@@ -34,8 +32,6 @@ bool ImGui_ImplBowie_Init(SDL_Window *wnd) {
 	}
 
 	wndApp = wnd;
-
-	SDL_GetWindowSize(wnd, &width, &height);
 
 	ImGuiIO& io = ImGui::GetIO();
 	io.BackendRendererName = "imgui_impl_bowie";
@@ -365,6 +361,9 @@ void ImGui_ImplBowie_RenderDrawData(ImDrawData* draw_data) {
 bool ImGui_ImplBowie_ProcessEvent(SDL_Event* e) {
 	ImGuiIO& io = ImGui::GetIO();
 	bool specialHandleMode = io.WantTextInput && SDL_IsScreenKeyboardShown(wndApp);
+
+	float width = io.DisplaySize.x * io.DisplayFramebufferScale.x;
+	float height = io.DisplaySize.y * io.DisplayFramebufferScale.y;
 
 	// check backspace key status
 	// now handle specific event here
