@@ -18,9 +18,8 @@ public:
 		// set some default value perhaps?
 		ambientColor = glm::vec4(0.2f, 0.2f, 0.2f, 0.0f);
 		sunDirection = glm::normalize(glm::vec3(1, 3, 2));
-		sunDiffuseColor = glm::vec4(0.8f, 0.9f, 0.2f, 1.0f);
-		sunSpecularColor = glm::vec4(1, 1, 1, 1);
-		sunIntensity = glm::vec4(1, 1, 1, 1);
+		sunColor = glm::vec4(1, 1, 1, 1);
+		sunIntensity = 1.0f;
 
 		nullLight.setDiffuse(glm::vec4(0.0f));
 		nullLight.setSpecular(glm::vec4(0.0f));
@@ -29,9 +28,8 @@ public:
 
 	SceneData* setAmbientColor(const glm::vec4& c) { ambientColor = c; return this; }
 	SceneData* setSunDirection(const glm::vec3& d) { sunDirection = glm::normalize(d); return this; }
-	SceneData* setSunDiffuseColor(const glm::vec4& c) { sunDiffuseColor = c; return this; }
-	SceneData* setSunSpecularColor(const glm::vec4& c) { sunSpecularColor = c; return this; }
-	SceneData* setSunIntensity(const glm::vec4& c) { sunIntensity = c; return this; }
+	SceneData* setSunColor(const glm::vec4& c) { sunColor = c; return this; }
+	SceneData* setSunIntensity(float i) { sunIntensity = i; return this; }
 
 
 	virtual void setupData(const Shader* s, const RenderPass* rp);
@@ -40,9 +38,8 @@ public:
 
 	glm::vec4 ambientColor;
 	glm::vec3 sunDirection;
-	glm::vec4 sunDiffuseColor;
-	glm::vec4 sunSpecularColor;
-	glm::vec4 sunIntensity;
+	glm::vec4 sunColor;
+	float sunIntensity;
 
 	std::vector<Light> pointLights;
 	Light nullLight;	// black, uninteresting light for padding

@@ -45,8 +45,8 @@ void Game::onInit() {
 			->usePerspective(true)
 			->setClipDistance(0.2f, 500.0f)
 		)
-		->useSceneData((new SceneData())
-			->setSunDiffuseColor(glm::vec4(1.0f))
+		->useSceneData(
+			(new SceneData())
 		)
 		->setViewport(0, 0, iWidth, iHeight);
 
@@ -87,17 +87,16 @@ void Game::onInit() {
 		->fillTextureSlot(0, textureMgr->get("env3.jpg"));
 	shaderDataMgr->load("rally_track_01")
 		->fillTextureSlot(0, textureMgr->get("road_on_grass.png"))
-		->setShininess(50.1f)
-		->setSpecular(glm::vec4(0.3f));
+		->setGlossiness(0.8f);
 	shaderDataMgr->load("trimsheet_01")
 		->fillTextureSlot(0, textureMgr->get("trimsheet_01.png"))
-		->setShininess(1.0f);
+		->setGlossiness(1.0f);
 	shaderDataMgr->load("debug")
 		->setDiffuse(glm::vec4(1.f, 0.f, 0.f, 1.f));
 	shaderDataMgr->load("phong")
 		->setDiffuse(glm::vec4(.2f, .2f, .2f, 1.f))
 		->setSpecular(glm::vec4(1.f, 1.f, 1.f, 1.f))
-		->setShininess(100.f);
+		->setGlossiness(.5f);
 
 
 	// make a material
@@ -116,9 +115,6 @@ void Game::onInit() {
 	materialMgr->load("trimsheet_01")
 		->withShader(shaderMgr->get("plain"))
 		->withData(shaderDataMgr->get("trimsheet_01"));
-	materialMgr->load("debug")
-		->withShader(m_renderer->getDebugShader())
-		->withData(shaderDataMgr->get("debug"));
 	materialMgr->load("phong")
 		->withShader(shaderMgr->get("phong"))
 		->withData(shaderDataMgr->get("phong"));
@@ -132,8 +128,6 @@ void Game::onInit() {
 	matsetMgr->load("rally_track_01")
 		->addMaterial(materialMgr->get("rally_track_01"))
 		->addMaterial(materialMgr->get("trimsheet_01"));
-	matsetMgr->load("debug")
-		->addMaterial(materialMgr->get("debug"));
 	matsetMgr->load("phong")
 		->addMaterial(materialMgr->get("phong"));
 
@@ -150,6 +144,14 @@ void Game::onInit() {
 	// create aabb tree
 	tree = new AABBTree();
 
+	// add unit sphere in the middle
+	MeshObject* obj = new MeshObject(
+		meshMgr->get("sphere.bcf"),
+		matsetMgr->get("phong")
+	);
+
+	renderObjs.push_back(obj);
+	tree->insert(new AABBNode(obj));
 	// test to create object
 	/*for (int i = 0; i < 0; i++) {
 		spawnRandomObject();
@@ -332,7 +334,8 @@ void Game::onRender(float dt) {
 			Material* mat = materialMgr->get("phong");
 			ImGui::ColorEdit4("diffuse", glm::value_ptr(mat->shData->diffuseColor), ImGuiColorEditFlags_Float);
 			ImGui::ColorEdit4("specular", glm::value_ptr(mat->shData->specularColor), ImGuiColorEditFlags_Float);
-			ImGui::SliderFloat("exponent", &mat->shData->shininess, 0.f, 255.f);
+			ImGui::SliderFloat("gloss", &mat->shData->glossiness, 0.f, 1.f);
+			ImGui::SliderFloat("F0", &mat->shData->fresnel0, 0.f, 1.f);
 		}
 		ImGui::End();
 
@@ -424,10 +427,9 @@ void Game::onRender(float dt) {
 
 			if (ImGui::CollapsingHeader("Sun Settings")) {
 				// put sun settings here?
-				ImGui::ColorEdit4("Sun Diffuse", glm::value_ptr(m_renderer->getSceneData()->sunDiffuseColor));
-				ImGui::ColorEdit4("Sun Specular", glm::value_ptr(m_renderer->getSceneData()->sunSpecularColor));
+				ImGui::ColorEdit4("Sun Color", glm::value_ptr(m_renderer->getSceneData()->sunColor));
 				//ImGui::ColorPicker4("Sun Intensity", glm::value_ptr(m_renderer->getSceneData()->sunIntensity));
-				ImGui::ColorEdit4("Sun Intensity", glm::value_ptr(m_renderer->getSceneData()->sunIntensity));
+				ImGui::SliderFloat("Sun Intensity", &m_renderer->getSceneData()->sunIntensity, 0.1f, 10.0f);
 				// renormalize at the end?
 				ImGui::DragFloat3("Sun Direction", glm::value_ptr(m_renderer->getSceneData()->sunDirection));
 				

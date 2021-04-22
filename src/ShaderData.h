@@ -17,7 +17,8 @@ public:
 		diffuseColor = glm::vec4(1, 1, 1, 1);
 		specularColor = glm::vec4(1, 1, 1, 1);
 		emissionColor = glm::vec4(0, 0, 0, 0);
-		shininess = 50.0f;
+		glossiness = 0.5f;	// half glossy
+		fresnel0 = 0.05;	// common dielectric?
 	}
 
 	ShaderData* fillTextureSlot(int slot, Texture2D* t) {
@@ -43,8 +44,13 @@ public:
 		return this;
 	}
 
-	ShaderData* setShininess(float a) {
-		shininess = a;
+	ShaderData* setGlossiness(float a) {
+		glossiness = a;
+		return this;
+	}
+
+	ShaderData* setFresnel0(float f) {
+		fresnel0 = f;
 		return this;
 	}
 
@@ -62,5 +68,5 @@ public:
 	glm::vec4 diffuseColor;
 	glm::vec4 specularColor;
 	glm::vec4 emissionColor;
-	float shininess;
+	float glossiness, fresnel0;
 };

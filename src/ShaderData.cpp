@@ -34,8 +34,13 @@ void ShaderData::setupShader(Shader* s, RenderPass *r)
 		glUniform4fv(uLoc, 1, glm::value_ptr(emissionColor));
 	}
 
-	uLoc = SU_LOC(s, material_shininess);
+	uLoc = SU_LOC(s, material_glossiness);
 	if (uLoc >= 0) {
-		glUniform1f(uLoc, shininess);
+		glUniform1f(uLoc, glossiness);
+	}
+
+	uLoc = SU_LOC(s, material_fresnel0);
+	if (uLoc >= 0) {
+		glUniform1f(uLoc, fresnel0);
 	}
 }

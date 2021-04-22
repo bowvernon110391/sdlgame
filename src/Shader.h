@@ -150,21 +150,14 @@ protected:
 		GLint compiled;
 		glGetShaderiv(shd, GL_COMPILE_STATUS, &compiled);
 
+		static char infoLog[1024];
+		GLint infoLen = 0;
+		glGetShaderiv(shd, GL_INFO_LOG_LENGTH, &infoLen);
+		glGetShaderInfoLog(shd, 1024, NULL, infoLog);
+		SDL_Log("SHADER_LOG: %s\n", infoLog);
+		SDL_assert(compiled && "Shader Compilation failed!");
+
 		if (!compiled) {
-			GLint infoLen = 0;
-
-			glGetShaderiv(shd, GL_INFO_LOG_LENGTH, &infoLen);
-
-			if (infoLen > 1) {
-				char* infoLog = new char[infoLen];
-
-				glGetShaderInfoLog(shd, infoLen, NULL, infoLog);
-
-				SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error compiling shader: %s\n SOURCE_DUMP:\n %s", infoLog, src);
-
-				delete[] infoLog;
-			}
-
 			// failed, delete shader
 			glDeleteShader(shd);
 

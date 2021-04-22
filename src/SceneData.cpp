@@ -32,21 +32,15 @@ void SceneData::setupData(const Shader* s, const RenderPass* rp)
 	}
 
 	// sun color (diffuse)
-	u_loc = SU_LOC(s, sun_diffuse_color);
+	u_loc = SU_LOC(s, sun_color);
 	if (u_loc >= 0) {
-		glUniform4fv(u_loc, 1, glm::value_ptr(sunDiffuseColor));
-	}
-
-	// sun color (specular)
-	u_loc = SU_LOC(s, sun_specular_color);
-	if (u_loc >= 0) {
-		glUniform4fv(u_loc, 1, glm::value_ptr(sunSpecularColor));
+		glUniform4fv(u_loc, 1, glm::value_ptr(sunColor));
 	}
 
 	// sun intensity
 	u_loc = SU_LOC(s, sun_intensity);
 	if (u_loc >= 0) {
-		glUniform4fv(u_loc, 1, glm::value_ptr(sunIntensity));
+		glUniform1f(u_loc, sunIntensity);
 	}
 
 	// point light's active count

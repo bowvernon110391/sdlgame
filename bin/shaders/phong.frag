@@ -8,33 +8,67 @@ varying vec3 vEye;
 
 // some scene data
 uniform vec4 scene_ambient_color;
-uniform vec4 sun_diffuse_color;
-uniform vec4 sun_specular_color;
+uniform vec4 sun_color;
+uniform float sun_intensity;
 
 // material data?
-uniform float material_shininess;
+uniform float material_glossiness;
+uniform float material_fresnel0;
 uniform vec4 material_specular;
 uniform vec4 material_diffuse;
 
-vec4 computeFinalColor(vec4 baseDiffuse) {
-	// gamma decode our color from texture	
+const float MAX_SHININESS = 255.0;
+const float GAMMA = 2.2;
+
+vec4 gammaDecode(vec4 color) {
+	return vec4(pow(color.xyz, vec3(GAMMA)), color.a);
+}
+
+vec4 gammaEncode(vec4 color) {
+	return vec4(pow(color.xyz, vec3(1.0/GAMMA)), color.a);
+}
+
+// compute our final color, baseDiffuse and baseSpecular assumed to be in linear space
+vec4 computeFinalColor(vec4 baseDiffuse, vec4 baseSpecular, float glossiness, float F0) {
+	// INPUTS
+	//----------------------------------------------------------------------
+	// N = normal
 	vec3 n_normal = normalize(vNormal);
-	float dp = max(0.0, dot(n_normal, vSunDirection));
+	// V = eye vector
+	vec3 eyeDir = normalize(vEye);
+	// H = half vector between eye and sun dir
+	vec3 halfVec = normalize((vSunDirection + eyeDir));
 	
-	// half vector of sun?
-	vec3 halfVec = normalize((vSunDirection + vEye) * 0.5);
+	// SOME TERMS
+	//----------------------------------------------------------------------
+	// N.L
+	float NDotL = max(0.0, dot(n_normal, vSunDirection));
+	// H.N
+	float HDotN = max(0.0, dot(halfVec, n_normal));
+	// N.V
+	float NDotV = max(0.0, dot(n_normal, eyeDir));
 	
-	// specular term (diffuse corrected too)
-	float diffFactor = smoothstep(dp, 0.0, 0.1);
-	float spec = pow( max(0.0, dot(halfVec, n_normal)), material_shininess ) * diffFactor;
+	// alpha
+	float a = glossiness * glossiness;
 	
-	// final is (amb + diff) * color + spec * sunspec
-	vec4 specularTerm = clamp((sun_specular_color * spec) * material_specular, 0.0, 1.0);
-	vec4 finalColor = clamp((scene_ambient_color + (sun_diffuse_color * dp) ) * baseDiffuse + specularTerm, 0.0, 1.0);
+	// fresnel?
+	float fresnel = pow(1.0-NDotV, (a * (1.0-F0)) * MAX_SHININESS) * (1.0-(a+F0)) * (a + F0);
 	
+	// diffuse
+	float diffuseTerm = NDotL * sun_intensity;
+	
+	// specular
+	float specularTerm = sun_intensity * pow(HDotN, a * MAX_SHININESS) * NDotL * a;
+	
+	// so, we got what we need, accumulate them
+	vec4 finalColor = baseDiffuse * (scene_ambient_color + sun_color * vec4(vec3(diffuseTerm), 1.0)) + (sun_color * baseSpecular * (specularTerm + fresnel));
+	
+	finalColor = clamp(finalColor, 0.0, 1.0);
 	return finalColor;
 }
 
 void main() {
-	gl_FragColor = computeFinalColor(material_diffuse);
+	vec4 finalColor = computeFinalColor(material_diffuse, material_specular, material_glossiness, material_fresnel0);
+	// gamma encode
+	gl_FragColor = gammaEncode(finalColor);
 }
