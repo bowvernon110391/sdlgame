@@ -42,14 +42,20 @@ vec3 blinnPhongConservative(vec3 albedo, vec3 ambient, vec3 sunColor, vec3 N, ve
 	
 	// m in range [0..255]
 	float m = max(0.0001, gloss * MAX_SHININESS);
+	
+	// blend to total diffuse when glossiness falls below F0
 	float modifier = smoothstep(0.0, max(0.0001, F0), gloss);
 	
+	// to conserve energy better, acommodate fresnel factor
 	float Rfh = schlickFresnel(NDotH, F0) * modifier;
+	// and blinn phong normalization factor
+	float normFactor = (m + 8.0) / 8.0;
 	
 	vec3 ambientTerm = ambient * albedo;
 	vec3 diffuseTerm = albedo;
-	vec3 specularTerm = specColor * (Rfh * pow(NDotH, m) * (m + 8.0) / 8.0);
+	vec3 specularTerm = specColor * (Rfh * pow(NDotH, m) * normFactor);
 	
+	// ambient term is mixed by (1.0-NDotL) amount (exist when no lighting occurs)
 	vec3 finalColor = sunColor * ( (ambientTerm * (1.0-NDotL)) + ((diffuseTerm + specularTerm) * NDotL));
 	
 	return finalColor;
