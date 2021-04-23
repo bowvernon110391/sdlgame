@@ -26,10 +26,13 @@ vec4 gammaEncode(vec4 color) {
 }
 
 float schlickFresnel(float NDotH, float F0) {
-	return F0 + (1.0 - F0) * pow(1.0-NDotH, 5);
+	return F0 + (1.0 - F0) * pow(1.0-NDotH, 5.0);
 }
 
 vec3 blinnPhongConservative(vec3 albedo, vec3 ambient, vec3 sunColor, vec3 N, vec3 L, vec3 V, float gloss, float F0) {
+	// for now, assume dielectric
+	vec3 specColor = sunColor;
+	
 	// half vector
 	vec3 H = normalize(L + V);
 	
@@ -37,18 +40,19 @@ vec3 blinnPhongConservative(vec3 albedo, vec3 ambient, vec3 sunColor, vec3 N, ve
 	float NDotL = max(dot(N, L), 0.0);
 	float NDotH = max(dot(N, H), 0.0);
 	
-	// diffTerm is NDotL, so compute specular term now
-	float diffTerm = NDotL;
+	// m in range [0..255]
+	float m = max(0.0001, gloss * MAX_SHININESS);
+	float modifier = smoothstep(0.0, max(0.0001, F0), gloss);
 	
-	float m = gloss * MAX_SHININESS;
-	float specTerm = pow(NDotH, m) * NDotL;
+	float Rfh = schlickFresnel(NDotH, F0) * modifier;
 	
-	float Rfh = schlickFresnel(NDotH, F0);
+	vec3 ambientTerm = ambient * albedo;
+	vec3 diffuseTerm = albedo;
+	vec3 specularTerm = specColor * (Rfh * pow(NDotH, m) * (m + 8.0) / 8.0);
 	
-	vec3 lambert = (albedo/PI * (vec3(diffTerm) + ambient) ) * sunColor;
-	vec3 blinnphong = sunColor * specTerm * (m + 8.0) / (PI * 8.0) * Rfh;
+	vec3 finalColor = sunColor * ( (ambientTerm * (1.0-NDotL)) + ((diffuseTerm + specularTerm) * NDotL));
 	
-	return lambert + blinnphong;
+	return finalColor;
 }
 
 void main() {

@@ -24,9 +24,9 @@
 #include "AABBTree.h"
 
 Game::Game() {
-	cam_horzRot = 30;
+	cam_horzRot = 0;
 	cam_vertRot = -45.0f;
-	cam_dist = 10.0f;
+	cam_dist = 5.0f;
 }
 
 Game::~Game() {
@@ -94,7 +94,7 @@ void Game::onInit() {
 	shaderDataMgr->load("debug")
 		->setDiffuse(glm::vec4(1.f, 0.f, 0.f, 1.f));
 	shaderDataMgr->load("phong")
-		->setDiffuse(glm::vec4(.2f, .2f, .2f, 1.f))
+		->setDiffuse(glm::vec4(1.f, .0f, .0f, 1.f))
 		->setSpecular(glm::vec4(1.f, 1.f, 1.f, 1.f))
 		->setGlossiness(.5f);
 
@@ -144,12 +144,28 @@ void Game::onInit() {
 	// create aabb tree
 	tree = new AABBTree();
 
-	// add unit sphere in the middle
+	// add unit sphere in the middle, and torus to the left, monke to the right
 	MeshObject* obj = new MeshObject(
 		meshMgr->get("sphere.bcf"),
 		matsetMgr->get("phong")
 	);
 
+	renderObjs.push_back(obj);
+	tree->insert(new AABBNode(obj));
+
+	// monke?
+	obj = (new MeshObject(
+		meshMgr->get("weirdcube.bcf"),
+		matsetMgr->get("phong")
+	))->setPosition(glm::vec3(2.2, 0.0, 0.0));
+	renderObjs.push_back(obj);
+	tree->insert(new AABBNode(obj));
+
+	// torus?
+	obj = (new MeshObject(
+		meshMgr->get("weirdsphere.bcf"),
+		matsetMgr->get("phong")
+	))->setPosition(glm::vec3(-2.2, 0.0, 0.0));
 	renderObjs.push_back(obj);
 	tree->insert(new AABBNode(obj));
 	// test to create object
