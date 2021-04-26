@@ -77,6 +77,8 @@ void Game::onInit() {
 	textureMgr->load("env3.jpg");
 	textureMgr->load("road_on_grass.png")->withWrap(GL_REPEAT, GL_REPEAT);
 	textureMgr->load("trimsheet_01.png");
+	textureMgr->load("ibl_spec.jpg");
+	textureMgr->load("ibl_diff.jpg");
 
 	// add shader data
 	shaderDataMgr->load("reflect_env")
@@ -96,7 +98,9 @@ void Game::onInit() {
 	shaderDataMgr->load("phong")
 		->setDiffuse(glm::vec4(1.f, .0f, .0f, 1.f))
 		->setSpecular(glm::vec4(1.f, 1.f, 1.f, 1.f))
-		->setGlossiness(.5f);
+		->setGlossiness(.5f)
+		->fillTextureSlot(0, textureMgr->get("ibl_spec.jpg"))
+		->fillTextureSlot(1, textureMgr->get("ibl_diff.jpg"));
 
 
 	// make a material
@@ -118,6 +122,7 @@ void Game::onInit() {
 	materialMgr->load("phong")
 		->withShader(shaderMgr->get("phong"))
 		->withData(shaderDataMgr->get("phong"));
+
 	// now add material set (a combination of material basically)
 	matsetMgr->load("reflect_env")
 		->addMaterial(materialMgr->get("reflect_env"));
@@ -315,7 +320,8 @@ void Game::onRender(float dt) {
 	m_renderer->draw(this->renderObjs, dt);
 
 	// debug draw aabb tree
-	tree->debugDraw(m_renderer);
+	if (m_renderer->drawDebug)
+		tree->debugDraw(m_renderer);
 
 	// 2d rendering
 	glDisable(GL_DEPTH_TEST);
@@ -352,6 +358,18 @@ void Game::onRender(float dt) {
 			ImGui::ColorEdit4("specular", glm::value_ptr(mat->shData->specularColor), ImGuiColorEditFlags_Float);
 			ImGui::SliderFloat("gloss", &mat->shData->glossiness, 0.f, 1.f);
 			ImGui::SliderFloat("F0", &mat->shData->fresnel0, 0.f, 1.f);
+			ImGui::Separator();
+
+			if (ImGui::CollapsingHeader("textures")) {
+				for (int i = 0; i < mat->shData->texture.size(); i++) {
+					if (i > 0)
+						ImGui::SameLine();
+					ImGui::BeginGroup();
+						ImGui::Text("texture_%2d", i);
+						ImGui::Image((ImTextureID)mat->shData->texture[i]->texId, ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0), ImVec4(1,1,1,1), ImVec4(1,1,1,1));
+					ImGui::EndGroup();
+				}
+			}
 		}
 		ImGui::End();
 
@@ -460,6 +478,8 @@ void Game::onRender(float dt) {
 			}
 
 		ImGui::End();
+
+		//ImGui::ShowMetricsWindow();
 	}
 
 	endRenderImGui();

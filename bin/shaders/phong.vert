@@ -14,12 +14,16 @@ varying vec3 vNormal;
 varying vec3 vSunDirection;
 varying vec3 vEye;
 
+varying vec2 vTexcoord;
+
 void main() {
 	vec4 p = vec4(position, 1.0);
 	
 	vSunDirection = mat3(m_view) * sun_direction;
 	vNormal = m_normal * normal;
 	vEye = normalize(-vec3(m_model_view * p));
+	
+	vTexcoord = uv;
 	
     gl_Position = m_model_view_projection * p;
 }

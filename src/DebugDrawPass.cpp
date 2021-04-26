@@ -11,6 +11,9 @@ void DebugDrawPass::prepare(float dt)
 
 void DebugDrawPass::draw(float dt)
 {
+	if (!renderer->drawDebug)
+		return;
+
 	// shared by all
 	glm::mat4 view = renderer->getCamera()->getViewMatrix();
 	glm::mat4 proj = renderer->getCamera()->getProjectionMatrix();
