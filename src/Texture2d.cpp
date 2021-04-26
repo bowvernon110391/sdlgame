@@ -142,8 +142,10 @@ static void downsample(unsigned char* src, int srcW, int srcH, unsigned char* ds
 			unsigned char* bl = sampleSource(src, srcW, srcH, bpp, x << 1, (y << 1) + 1);
 
 			for (int c = 0; c < bpp; ++c) {
-				// average them
-				pixel[c] = (tl[c] + tr[c] + br[c] + bl[c]) / 4;
+				// average them, except for alpha maybe? NAH ALL OF EM
+				pixel[c] = (
+					(tl[c]) + (tr[c]) + (br[c]) + (bl[c])
+					) / 4;
 			}
 		}
 	}
@@ -204,6 +206,9 @@ void Texture2D::generateMipMap() {
 					tmpBuffer, targetW, targetH, 0, bpp);*/
 				// use our custom resampler?
 				downsample(currentBuffer, currentW, currentH, tmpBuffer, targetW, targetH, bpp);
+
+				/*int ret = stbir_resize_uint8_srgb(currentBuffer, currentW, currentH, 0, tmpBuffer, targetW, targetH, 0, bpp,
+					bpp > 3, 0);*/
 
 				// write it down?
 #ifdef _DEBUG

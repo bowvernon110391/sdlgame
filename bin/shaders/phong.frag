@@ -121,14 +121,14 @@ vec4 getDualParaboloid(vec3 e, vec3 n, sampler2D tex, float glossiness) {
 }
 
 vec4 getSphereMap(vec3 E, vec3 N, sampler2D spec_map, sampler2D diff_map, float glossiness) {
-	//const float MAX_MIP_LEVEL = 6.0;
-	float roughness = 1.0 - (glossiness * glossiness);
+	const float MAX_MIP_LEVEL = 4.0;
+	float roughness = (1.0 - (glossiness * glossiness));
 	
-	//float mip_target = roughness * MAX_MIP_LEVEL;
+	float mip_target = roughness * MAX_MIP_LEVEL;
 	
 	vec3 r = reflect(E, N);
 	vec2 uv = r.xy * 0.5 + 0.5;
-	vec4 spec = gammaDecode(texture2D(spec_map, uv));
+	vec4 spec = gammaDecode(texture2D(spec_map, uv, mip_target));
 	vec4 diff = gammaDecode(texture2D(diff_map, uv));
 	
 	return mix(spec, diff, roughness);
@@ -154,7 +154,7 @@ void main() {
 	
 	finalColor.rgb = mix(lightColor, reflection.rgb, fresnel * fresnel_factor);
 	// finalColor.rgb = vec3(fresnel * fresnel_factor);
-	//finalColor = texColor;
+	// finalColor = reflection;
 	// finalColor.rgb = finalColor.rgb / (finalColor.rgb + vec3(1.0));
 	// gamma encode
 	gl_FragColor = gammaEncode(finalColor);
