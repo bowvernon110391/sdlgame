@@ -120,14 +120,25 @@ vec4 getDualParaboloid(vec3 e, vec3 n, sampler2D tex, float glossiness) {
 	return normal_mix;
 }
 
+vec2 sphereMapCoord(vec3 E, vec3 N) {
+	vec3 r = reflect(E, N);
+	float m = 2. * sqrt(
+		pow(r.x, 2.) + 
+		pow(r.y, 2.) +
+		pow(r.z+1., 2.)
+	);
+	
+	return r.xy / m + 0.5;
+}
+
 vec4 getSphereMap(vec3 E, vec3 N, sampler2D spec_map, sampler2D diff_map, float glossiness) {
 	const float MAX_MIP_LEVEL = 4.0;
-	float roughness = (1.0 - (glossiness * glossiness));
+	float roughness = (1.0 - glossiness);
+	//roughness *= roughness;
 	
 	float mip_target = roughness * MAX_MIP_LEVEL;
 	
-	vec3 r = reflect(E, N);
-	vec2 uv = r.xy * 0.5 + 0.5;
+	vec2 uv = sphereMapCoord(E, N);
 	vec4 spec = gammaDecode(texture2D(spec_map, uv, mip_target));
 	vec4 diff = gammaDecode(texture2D(diff_map, uv));
 	
