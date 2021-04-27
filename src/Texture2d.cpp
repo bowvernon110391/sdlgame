@@ -128,6 +128,47 @@ static unsigned char* sampleSource(unsigned char* src, int srcW, int srcH, int b
 	return &src[(y * srcW + x) * bpp];
 }
 
+static void blur(unsigned char* src, int srcW, int srcH, int bpp) {
+	const int kernel[3][3] = {
+		{1, 2, 1},
+		{2, 4, 2},
+		{1, 2, 1}
+	};
+	const int kernelSize = 16;
+	// allocate buffer
+	unsigned char* tmp = new unsigned char[srcW * srcH * bpp];
+	memset(tmp, 0, srcW * srcH * bpp);
+
+	for (int y = 0; y < srcH; y++) {
+		for (int x = 0; x < srcW; x++) {
+			int pixelId = (y * srcW + x) * bpp;
+			unsigned char* pixel = &tmp[pixelId];
+
+			for (int b = 0; b < bpp; b++) {
+				unsigned int pixelValue = 0;
+				// manual?
+				pixelValue += sampleSource(src, srcW, srcH, bpp, x - 1, y - 1)[b] * kernel[0][0];
+				pixelValue += sampleSource(src, srcW, srcH, bpp, x    , y - 1)[b] * kernel[0][1];
+				pixelValue += sampleSource(src, srcW, srcH, bpp, x + 1, y - 1)[b] * kernel[0][2];
+				pixelValue += sampleSource(src, srcW, srcH, bpp, x - 1, y    )[b] * kernel[1][0];
+				pixelValue += sampleSource(src, srcW, srcH, bpp, x    , y    )[b] * kernel[1][1];
+				pixelValue += sampleSource(src, srcW, srcH, bpp, x + 1, y    )[b] * kernel[1][2];
+				pixelValue += sampleSource(src, srcW, srcH, bpp, x - 1, y + 1)[b] * kernel[2][0];
+				pixelValue += sampleSource(src, srcW, srcH, bpp, x    , y + 1)[b] * kernel[2][1];
+				pixelValue += sampleSource(src, srcW, srcH, bpp, x + 1, y + 1)[b] * kernel[2][2];
+				pixelValue /= kernelSize;
+
+				pixel[b] = pixelValue;
+			}
+		}
+	}
+
+	// alter src
+	memcpy(src, tmp, srcW * srcH * bpp);
+
+	delete[] tmp;
+}
+
 static void downsample(unsigned char* src, int srcW, int srcH, unsigned char* dst, int targetW, int targetH, int bpp) {
 	// scan vertically in target image?
 	for (int y = 0; y < targetH; ++y) {
@@ -206,7 +247,6 @@ void Texture2D::generateMipMap() {
 					tmpBuffer, targetW, targetH, 0, bpp);*/
 				// use our custom resampler?
 				downsample(currentBuffer, currentW, currentH, tmpBuffer, targetW, targetH, bpp);
-
 				/*int ret = stbir_resize_uint8_srgb(currentBuffer, currentW, currentH, 0, tmpBuffer, targetW, targetH, 0, bpp,
 					bpp > 3, 0);*/
 
