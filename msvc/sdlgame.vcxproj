@@ -154,6 +154,7 @@
     <ClCompile Include="..\src\bullet\btBulletCollisionAll.cpp" />
     <ClCompile Include="..\src\bullet\btBulletDynamicsAll.cpp" />
     <ClCompile Include="..\src\bullet\btLinearMathAll.cpp" />
+    <ClCompile Include="..\src\Camera.cpp" />
     <ClCompile Include="..\src\ColorDepthPass.cpp" />
     <ClCompile Include="..\src\DebugDrawPass.cpp" />
     <ClCompile Include="..\src\Game.cpp" />

@@ -207,6 +207,8 @@ Renderer* Renderer::setViewport(int x, int y, int w, int h) {
 
 void Renderer::draw(std::vector<AbstractRenderObject*>& objs, float dt)
 {
+	// update main camera
+	m_camera->updateMatrices();
 	// compute camera and scene data
 	m_scene->updateLightsUniformData(m_camera->getPosition());
 

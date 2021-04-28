@@ -2,6 +2,47 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
+class AABB;
+// a frustum class
+class Frustum {
+public:
+	enum TestResult {
+		FULLY_IN,
+		FULLY_OUT,
+		INTERSECT
+	};
+
+	Frustum() {}
+	~Frustum() {}
+
+	// various testing
+	TestResult testAABB(const AABB* bbox) const;
+	TestResult testPoint(const glm::vec3& p) const;
+	TestResult testSphere(const glm::vec3& p, float r) const;
+
+	// helper
+	static const char* getPlaneName(int id) {
+		switch (id) {
+		case 0:
+			return "LEFT";
+		case 1:
+			return "RIGHT";
+		case 2:
+			return "BOTTOM";
+		case 3:
+			return "TOP";
+		case 4:
+			return "NEAR";
+		case 5:
+			return "FAR";
+		}
+		return "UNKNOWN";
+	}
+
+	// contain 6 planes
+	glm::vec4 planes[6];
+};
+
 class Camera {
 public:
 	Camera() {
@@ -14,21 +55,12 @@ public:
 		farPlane = 100.0f;
 	}
 
-	virtual glm::mat4 getViewMatrix() {
-		glm::mat4 view;
-		view = glm::lookAt(eye, target, up);
-		return view;
+	virtual const glm::mat4& getViewMatrix() {
+		return view_cached;
 	}
 
-	virtual glm::mat4 getProjectionMatrix() {
-		glm::mat4 proj;
-		if (isPerspective) {
-			proj = glm::perspectiveFov(glm::radians(fov), aspect, 1.0f, nearPlane, farPlane);
-		}
-		else {
-			proj = glm::ortho(left, right, bottom, top, nearPlane, farPlane);
-		}
-		return proj;
+	virtual const glm::mat4& getProjectionMatrix() {
+		return proj_cached;
 	}
 
 	Camera* setAspect(float a) { aspect = a; return this; }
@@ -43,12 +75,17 @@ public:
 		return this;
 	}
 
+	void updateFrustum();
+	void updateMatrices();
+
 	const glm::vec3& getPosition() const { return eye;  }
 	const glm::vec3& getTarget() const { return target;  }
 	const glm::vec3& getUp() const { return up;  }
 	glm::vec3 getDir() const {
 		return target - eye;
 	}
+
+	const Frustum* getFrustum() const { return &frustum;  }
 
 protected:
 	// what does a camera have?
@@ -61,4 +98,9 @@ protected:
 	float nearPlane, farPlane;
 	// for orthogonal
 	float left, right, top, bottom;
+	// the frustum
+	Frustum frustum;
+	// cached view matrix
+	glm::mat4 view_cached;
+	glm::mat4 proj_cached;
 };

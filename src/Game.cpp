@@ -173,6 +173,15 @@ void Game::onInit() {
 	))->setPosition(glm::vec3(-2.2, 0.0, 0.0));
 	renderObjs.push_back(obj);
 	tree->insert(new AABBNode(obj));
+
+	// add unit sphere in the middle, and torus to the left, monke to the right
+	obj = (new MeshObject(
+		meshMgr->get("sphere.bcf"),
+		matsetMgr->get("reflect_env2")
+	))->setPosition(glm::vec3(7.f, 1.f, 2.f));
+
+	renderObjs.push_back(obj);
+	tree->insert(new AABBNode(obj));
 	// test to create object
 	/*for (int i = 0; i < 0; i++) {
 		spawnRandomObject();
@@ -417,6 +426,22 @@ void Game::onRender(float dt) {
 			if (ImGui::CollapsingHeader("Debugging")) {
 				ImGui::Checkbox("Draw Debug?", &m_renderer->drawDebug);
 				ImGui::ColorEdit4("Box Color", glm::value_ptr(m_renderer->debugColor));
+
+				// draw the frustum info?
+				if (ImGui::CollapsingHeader("Frustum")) {
+					// monke test
+					const Frustum* f = m_renderer->getCamera()->getFrustum();
+
+					Frustum::TestResult res = f->testSphere(glm::vec3(7.f, 1.f, 2.f), 1.f);
+					const char* resText[] = { "FULL IN", "FULL OUT", "PARTIAL" };
+
+					ImGui::Text("Sphere is - %s", resText[res]);
+					// draw em
+					for (int i = 0; i < 6; i++) {
+						const glm::vec4& p = f->planes[i];
+						ImGui::Text("%s : %.2f %.2f %.2f %.2f", Frustum::getPlaneName(i), p.x, p.y, p.z, p.w);
+					}
+				}
 			}
 
 			if (ImGui::CollapsingHeader("Color+Depth Pass")) {
