@@ -1,8 +1,39 @@
 #include "Camera.h"
+#include "AABB.h"
 
 Frustum::TestResult Frustum::testAABB(const AABB* bbox) const
 {
-    return Frustum::FULLY_IN;
+	// make center point
+	glm::vec3 extent = (bbox->max - bbox->min) * 0.5f;
+	glm::vec3 center = (bbox->min + extent);
+
+	// make variation
+	const glm::vec3 t[4] = {
+		glm::vec3(extent),
+		glm::vec3(extent.x, -extent.y, -extent.z),
+		glm::vec3(-extent.x,  extent.y, -extent.z),
+		glm::vec3(-extent.x, -extent.y, extent.z)
+	};
+
+	int pass = 0;
+	for (int i = 0; i < 6; i++) {
+		float ext_dist = 0.0f;
+		for (int v = 0; v < 4; v++) {
+			float ed = fabs(t[v].x * planes[i].x + t[v].y * planes[i].y + t[v].z * planes[i].z);
+			if (v == 0 || ed > ext_dist)
+				ext_dist = ed;
+		}
+
+		// compute distance?
+		float d = planes[i].x * center.x + planes[i].y * center.y + planes[i].z * center.z + planes[i].w;
+		if (d < -ext_dist) {
+			return TestResult::FULLY_OUT;
+		}
+		else if (d > ext_dist)
+			pass++;
+	}
+
+	return pass == 6 ? TestResult::FULLY_IN : TestResult::INTERSECT;
 }
 
 Frustum::TestResult Frustum::testPoint(const glm::vec3& p) const

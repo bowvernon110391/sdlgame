@@ -321,6 +321,7 @@ void Game::onRender(float dt) {
 
 	//SDL_Log("Camera pos: %.4f, %.4f, %.4f\n", camPos.x, camPos.y, camPos.z);
 	m_renderer->getCamera()->setPosition(camPos);
+	m_renderer->getCamera()->setTarget(-camPos);
 
 	// clear depth and color
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -436,6 +437,12 @@ void Game::onRender(float dt) {
 					const char* resText[] = { "FULL IN", "FULL OUT", "PARTIAL" };
 
 					ImGui::Text("Sphere is - %s", resText[res]);
+
+					// now do for the tree?
+					const AABB* b = &lmo->lm->findNodeByMeshId(lmo->active_mesh)->bbox;
+					res = f->testAABB(b);
+					ImGui::Text("Visible Node AABB is - %s", resText[res]);
+
 					// draw em
 					for (int i = 0; i < 6; i++) {
 						const glm::vec4& p = f->planes[i];
