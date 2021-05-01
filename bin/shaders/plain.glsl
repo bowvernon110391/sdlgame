@@ -23,10 +23,6 @@ precision mediump float;
 
 uniform sampler2D texture0;
 
-#ifdef HAS_AMBIENT
-	uniform vec4 scene_ambient_color;
-#endif//HAS_AMBIENT
-
 varying vec2 v_texcoord;
 
 void main() {
@@ -36,11 +32,7 @@ void main() {
 	if (texColor.a < 0.5) discard;
 	#endif//HAS_ALPHA_CLIP
 	
-	#ifdef HAS_AMBIENT
-	gl_FragColor = texColor * scene_ambient_color;
-	#else
 	gl_FragColor = texColor;
-	#endif
 }
 
 #endif//FRAGMENT_SHADER

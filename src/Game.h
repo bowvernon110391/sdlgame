@@ -16,6 +16,7 @@ class LargeMesh;
 class AABBTree;
 class AABBNode;
 class ShaderSource;
+class ShaderInstanceManager;
 
 // #define GLM_FORCE_MESSAGES
 
@@ -65,6 +66,8 @@ private:
     ResourceManager<Texture2D> *textureMgr;
     ResourceManager<MaterialSet> *matsetMgr;
     ResourceManager<ShaderSource>* sourceMgr;
+
+    ShaderInstanceManager* shdInstanceMgr;
     
 
     std::vector<AbstractRenderObject*> renderObjs;

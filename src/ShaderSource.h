@@ -43,6 +43,9 @@ struct ShaderKey {
 	}
 
 	size_t computeHash() const;
+	bool operator==(const ShaderKey& o) const {
+		return computeHash() == o.computeHash();
+	}
 	
 	ShaderSource* source;
 	LightType light_type;

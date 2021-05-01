@@ -178,6 +178,7 @@
     <ClCompile Include="..\src\SceneData.cpp" />
     <ClCompile Include="..\src\SceneGraph.cpp" />
     <ClCompile Include="..\src\ShaderData.cpp" />
+    <ClCompile Include="..\src\ShaderInstanceManager.cpp" />
     <ClCompile Include="..\src\ShaderSource.cpp" />
     <ClCompile Include="..\src\Texture2d.cpp" />
     <ClCompile Include="MaterialSet.cpp" />
@@ -194,6 +195,7 @@
     <ClInclude Include="..\src\DebugDrawPass.h" />
     <ClInclude Include="..\src\Game.h" />
     <ClInclude Include="..\src\Helper.h" />
+    <ClInclude Include="..\src\ShaderInstanceManager.h" />
     <ClInclude Include="..\src\ShaderSource.h" />
     <ClInclude Include="..\src\Traits.h" />
     <ClInclude Include="..\src\imgui\imconfig.h" />

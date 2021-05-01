@@ -23,6 +23,7 @@
 #include "LargeMeshObject.h"
 #include "AABBTree.h"
 #include "ShaderSource.h"
+#include "ShaderInstanceManager.h"
 
 Game::Game() {
 	cam_horzRot = 0;
@@ -62,12 +63,13 @@ void Game::onInit() {
 	largeMeshMgr = new ResourceManager<LargeMesh>(loadLargeMesh, "meshes");
 	textureMgr = new ResourceManager<Texture2D>(loadTexture, "textures");
 	sourceMgr = new ResourceManager<ShaderSource>(loadShaderSource, "shaders", new ShaderSource(""));
+	shdInstanceMgr = new ShaderInstanceManager();
 
 	// load a source
 	sourceMgr->load("plain.glsl");
 
 	ShaderSource* src = sourceMgr->get("plain.glsl");
-	src->debugPrint();
+	//src->debugPrint();
 
 	ShaderKey keys[] = {
 		ShaderKey(src, LightType::UNLIT, OpacityType::OPAQUE, GeomType::STATIC),
@@ -77,7 +79,7 @@ void Game::onInit() {
 	};
 
 	for (int i = 0; i < 4; i++) {
-		SDL_Log("SHADER_KEY[%d] hash: %d\n", i, keys[i].computeHash());
+		const Shader* shd = shdInstanceMgr->getShader(keys[i]);
 	}
 
 	// add a cube manually
@@ -200,6 +202,8 @@ void Game::onDestroy() {
 	textureMgr->printDebug();
 	SDL_Log("++SHADER_SOURCES++\n");
 	sourceMgr->printDebug();
+	SDL_Log("__SHADER_INSTANCES__\n");
+	shdInstanceMgr->printDebug();
 
 	destroyImGui();
 	// delete renderer
@@ -213,6 +217,7 @@ void Game::onDestroy() {
 	delete matsetMgr;
 	delete textureMgr;
 	delete sourceMgr;
+	delete shdInstanceMgr;
 	// delete tree
 	delete tree;
 
