@@ -115,5 +115,11 @@ public:
 			);
 	}
 
+	// containment check. meaning b's bound is still within a's containment
+	static bool contain(const AABB& a, const AABB& b) {
+		return (b.min.x >= a.min.x && b.min.y >= a.min.y && b.min.z >= a.min.z)
+			&& (b.max.x <= a.max.x && b.max.y <= a.max.y && b.max.z <= a.max.z);
+	}
+
 	glm::vec3 min, max;
 };

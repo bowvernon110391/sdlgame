@@ -1,0 +1,41 @@
+#pragma once
+
+enum GeomType {
+	STATIC = 0,
+	SKINNED,
+	BILLBOARD
+};
+
+enum OpacityType {
+	OPAQUE = 0,
+	ALPHA_CLIP,
+	ALPHA_BLEND
+};
+
+enum BlendMode {
+	NORMAL = 0,
+	ADD,
+	DST_MULTIPLY
+};
+
+enum LightType {
+	UNLIT = 0,
+	AMBIENT,
+	DIRECTIONAL,
+	POINT,
+	SPOT,
+	EMISSION
+};
+
+enum Passes {
+	OPAQUE_DEPTH,
+	OPAQUE_SHADOW,
+	TRANSPARENT_SHADOW,
+
+	OPAQUE_UNLIT,
+	OPAQUE_AMBIENT,
+	OPAQUE_LIT,
+	OPAQUE_EMISSION,
+
+	TRANSPARENT
+};

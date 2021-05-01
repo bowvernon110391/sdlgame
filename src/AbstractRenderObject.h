@@ -2,6 +2,7 @@
 #include <vector>
 #include <assert.h>
 #include "AABB.h"
+#include "render_enums.h"
 
 class Shader;
 class Mesh;

@@ -1,6 +1,8 @@
 #pragma once
 #include "AABB.h"
 #include "AbstractRenderObject.h"
+#include "Traits.h"
+#include "Camera.h"
 #include <stdio.h>
 #include <queue>
 #include <unordered_map>
@@ -10,7 +12,7 @@ class Renderer;
 
 class AABBNode {
 public:
-	AABBNode(const AbstractRenderObject* obj, float fatten=0.2f):
+	AABBNode(const IBoundable* obj, float fatten=0.2f):
 		obj(obj), parent(nullptr), left(nullptr), right(nullptr)
 	{
 		if (obj) {
@@ -214,7 +216,7 @@ public:
 	}
 
 	AABB bbox;
-	const AbstractRenderObject* obj;
+	const IBoundable* obj;
 	// relations
 	AABBNode* parent, * left, * right;
 };
@@ -250,7 +252,7 @@ public:
 		}
 	}
 
-	AABBNode* findNode(const AbstractRenderObject* obj) {
+	AABBNode* findNode(const IBoundable* obj) {
 		if (objs.find(obj) == objs.end())
 			return nullptr;
 		return objs.at(obj);
@@ -277,10 +279,12 @@ public:
 	// operations
 	AABBNode* insert(AABBNode* n);
 	void remove(AABBNode* n);
+	void refresh();	// maybe the boundable moved?
+	void clip_leaves(Frustum *f, std::vector<const IBoundable*> clipped);
 
 	// members?
 	// first, vector of aabb tree?
-	std::unordered_map<const AbstractRenderObject*, AABBNode*> objs;
+	std::unordered_map<const IBoundable*, AABBNode*> objs;
 	AABBNode* root;
 	AABBNode* selected;
 

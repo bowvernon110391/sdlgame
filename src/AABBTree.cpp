@@ -196,6 +196,87 @@ void AABBTree::remove(AABBNode* n)
     }
 }
 
+void AABBTree::refresh()
+{
+    // we got pair of object and nodes
+    std::vector<AABBNode*> changed;
+    std::vector<const IBoundable*> orphaned;
+
+    // detect which ones need changing
+    std::unordered_map<const IBoundable*, AABBNode*>::iterator it = objs.begin();
+    while (it != objs.end()) {
+        // check
+        const AABB& node_aabb = it->second->bbox;
+        const AABB& obj_aabb = it->first->getBoundingBox();
+
+        // might have changed
+        if (!AABB::contain(node_aabb, obj_aabb)) {
+            changed.push_back(it->second);
+            orphaned.push_back(it->first);
+        }
+
+        ++it;
+    }
+
+    // remove changed
+    for (AABBNode* n : changed) {
+        remove(n);
+    }
+
+    // add again orphaned one
+    for (const IBoundable* b : orphaned) {
+        // make new node
+        AABBNode *newNode = new AABBNode(b);
+        insert(newNode);
+
+        // update in the hash map (we didn't delete it)
+        auto it = objs.find(b);
+        SDL_assert(it != objs.end());
+
+        it->second = newNode;
+    }
+}
+
+void AABBTree::clip_leaves(Frustum* f, std::vector<const IBoundable*> clipped)
+{
+    // return all contained in leaves
+    std::stack<AABBNode*> s;
+    s.push(root);
+
+    while (!s.empty()) {
+        AABBNode* n = s.top();
+        s.pop();
+
+        // check
+        Frustum::TestResult res = f->testAABB(&n->bbox);
+
+        // depending on result, do something
+        if (res == Frustum::FULLY_IN) {
+            // no need to check, just directly return all leaves inside
+            std::stack<AABBNode*> ss;
+            ss.push(n);
+
+            while (!ss.empty()) {
+                AABBNode* nn = ss.top();
+                ss.pop();
+
+                if (!nn->isLeaf()) {
+                    ss.push(nn->left);
+                    ss.push(nn->right);
+                    continue;
+                }
+                // well it's leaf, push it
+                clipped.push_back(nn->obj);
+            }
+        }
+        else if (res == Frustum::INTERSECT) {
+            // intersect, test children
+            s.push(n->left);
+            s.push(n->right);
+        }
+    }
+}
+
 AABBNode* AABBTree::findBestNode(const AABBNode* contender) const
 {
     if (!root) {

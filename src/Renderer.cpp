@@ -70,6 +70,8 @@ RenderPass* Renderer::addPass(const std::string& name, RenderPass* p)
 }
 
 void Renderer::createPasses() {
+	// add all pass
+
 	// the most important, teh depth+color pass
 	addPass("color_depth", new ColorDepthPass(5));
 	// debug pass (optional)

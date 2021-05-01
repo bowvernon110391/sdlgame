@@ -176,6 +176,7 @@
     <ClCompile Include="..\src\Renderer.cpp" />
     <ClCompile Include="..\src\RenderPass.cpp" />
     <ClCompile Include="..\src\SceneData.cpp" />
+    <ClCompile Include="..\src\SceneGraph.cpp" />
     <ClCompile Include="..\src\ShaderData.cpp" />
     <ClCompile Include="..\src\Texture2d.cpp" />
     <ClCompile Include="MaterialSet.cpp" />
@@ -192,6 +193,7 @@
     <ClInclude Include="..\src\DebugDrawPass.h" />
     <ClInclude Include="..\src\Game.h" />
     <ClInclude Include="..\src\Helper.h" />
+    <ClInclude Include="..\src\Traits.h" />
     <ClInclude Include="..\src\imgui\imconfig.h" />
     <ClInclude Include="..\src\imgui\imgui.h" />
     <ClInclude Include="..\src\imgui\imgui_impl_bowie.h" />
@@ -208,9 +210,11 @@
     <ClInclude Include="..\src\Renderable.h" />
     <ClInclude Include="..\src\RenderCommand.h" />
     <ClInclude Include="..\src\RenderPass.h" />
+    <ClInclude Include="..\src\render_enums.h" />
     <ClInclude Include="..\src\Resource.h" />
     <ClInclude Include="..\src\ResourceManager.h" />
     <ClInclude Include="..\src\SceneData.h" />
+    <ClInclude Include="..\src\SceneGraph.h" />
     <ClInclude Include="..\src\ShaderData.h" />
     <ClInclude Include="..\src\Mesh.h" />
     <ClInclude Include="..\src\Renderer.h" />
