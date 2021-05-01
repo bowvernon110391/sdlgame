@@ -22,6 +22,7 @@
 #include "MeshObject.h"
 #include "LargeMeshObject.h"
 #include "AABBTree.h"
+#include "ShaderSource.h"
 
 Game::Game() {
 	cam_horzRot = 0;
@@ -34,6 +35,8 @@ Game::~Game() {
 }
 static LargeMeshObject* lmo;
 void Game::onInit() {
+	// debug print
+	glEnable(GL_MULTISAMPLE);
 	srand(SDL_GetTicks());
 	initImGui();
 
@@ -58,136 +61,45 @@ void Game::onInit() {
 	meshMgr = new ResourceManager<Mesh>(loadMesh, "meshes");
 	largeMeshMgr = new ResourceManager<LargeMesh>(loadLargeMesh, "meshes");
 	textureMgr = new ResourceManager<Texture2D>(loadTexture, "textures");
+	sourceMgr = new ResourceManager<ShaderSource>(loadShaderSource, "shaders", new ShaderSource(""));
+
+	// load a source
+	sourceMgr->load("plain.glsl");
+
+	ShaderSource* src = sourceMgr->get("plain.glsl");
+	src->debugPrint();
+
+	ShaderKey keys[] = {
+		ShaderKey(src, LightType::UNLIT, OpacityType::OPAQUE, GeomType::STATIC),
+		ShaderKey(src, LightType::UNLIT, OpacityType::ALPHA_CLIP, GeomType::STATIC),
+		ShaderKey(src, LightType::AMBIENT, OpacityType::OPAQUE, GeomType::STATIC),
+		ShaderKey(src, LightType::AMBIENT, OpacityType::ALPHA_CLIP, GeomType::STATIC)
+	};
+
+	for (int i = 0; i < 4; i++) {
+		SDL_Log("SHADER_KEY[%d] hash: %d\n", i, keys[i].computeHash());
+	}
 
 	// add a cube manually
-	meshMgr->put("cube", Mesh::createUnitBox()->createBufferObjects());
-	meshMgr->load("weirdcube.bcf");
-	meshMgr->load("weirdsphere.bcf");
-	meshMgr->load("sphere.bcf");
+	//meshMgr->put("cube", Mesh::createUnitBox()->createBufferObjects());
+	//meshMgr->load("weirdcube.bcf");
+	//meshMgr->load("weirdsphere.bcf");
+	//meshMgr->load("sphere.bcf");
 
-	// load a shader
-	shaderMgr->load("box");
-	shaderMgr->load("plain");
-	shaderMgr->load("spheremap");
-	shaderMgr->load("phong");
+	//// load a shader
+	//shaderMgr->load("box");
+	//shaderMgr->load("plain");
+	//shaderMgr->load("spheremap");
+	//shaderMgr->load("phong");
 
-	// load textures
-	textureMgr->load("env.jpg");
-	textureMgr->load("env2.jpg");
-	textureMgr->load("env3.jpg");
-	textureMgr->load("road_on_grass.png")->withWrap(GL_REPEAT, GL_REPEAT);
-	textureMgr->load("trimsheet_01.png");
-	textureMgr->load("ibl_spec.jpg");
-	textureMgr->load("ibl_diff.jpg");
-
-	// add shader data
-	shaderDataMgr->load("reflect_env")
-		->fillTextureSlot(0, textureMgr->get("env.jpg"));
-	shaderDataMgr->load("reflect_env2")
-		->fillTextureSlot(0, textureMgr->get("env2.jpg"));
-	shaderDataMgr->load("reflect_env3")
-		->fillTextureSlot(0, textureMgr->get("env3.jpg"));
-	shaderDataMgr->load("rally_track_01")
-		->fillTextureSlot(0, textureMgr->get("road_on_grass.png"))
-		->setGlossiness(0.8f);
-	shaderDataMgr->load("trimsheet_01")
-		->fillTextureSlot(0, textureMgr->get("trimsheet_01.png"))
-		->setGlossiness(1.0f);
-	shaderDataMgr->load("debug")
-		->setDiffuse(glm::vec4(1.f, 0.f, 0.f, 1.f));
-	shaderDataMgr->load("phong")
-		->setDiffuse(glm::vec4(1.f, .0f, .0f, 1.f))
-		->setSpecular(glm::vec4(1.f, 1.f, 1.f, 1.f))
-		->setGlossiness(.5f)
-		->fillTextureSlot(0, textureMgr->get("ibl_spec.jpg"))
-		->fillTextureSlot(1, textureMgr->get("ibl_diff.jpg"));
-
-
-	// make a material
-	materialMgr->load("reflect_env")
-		->withShader(shaderMgr->get("spheremap"))
-		->withData(shaderDataMgr->get("reflect_env"));
-	materialMgr->load("reflect_env2")
-		->withShader(shaderMgr->get("spheremap"))
-		->withData(shaderDataMgr->get("reflect_env2"));
-	materialMgr->load("reflect_env3")
-		->withShader(shaderMgr->get("spheremap"))
-		->withData(shaderDataMgr->get("reflect_env3"));
-	materialMgr->load("rally_track_01")
-		->withShader(shaderMgr->get("box"))
-		->withData(shaderDataMgr->get("rally_track_01"));
-	materialMgr->load("trimsheet_01")
-		->withShader(shaderMgr->get("plain"))
-		->withData(shaderDataMgr->get("trimsheet_01"));
-	materialMgr->load("phong")
-		->withShader(shaderMgr->get("phong"))
-		->withData(shaderDataMgr->get("phong"));
-
-	// now add material set (a combination of material basically)
-	matsetMgr->load("reflect_env")
-		->addMaterial(materialMgr->get("reflect_env"));
-	matsetMgr->load("reflect_env2")
-		->addMaterial(materialMgr->get("reflect_env2"));
-	matsetMgr->load("reflect_env3")
-		->addMaterial(materialMgr->get("reflect_env3"));
-	matsetMgr->load("rally_track_01")
-		->addMaterial(materialMgr->get("rally_track_01"))
-		->addMaterial(materialMgr->get("trimsheet_01"));
-	matsetMgr->load("phong")
-		->addMaterial(materialMgr->get("phong"));
-
-	// debug print
-	glEnable(GL_MULTISAMPLE);
-
-	// test
-	LargeMesh* lm = largeMeshMgr->load("rally_track_01.lmf");
-
-	lmo = new LargeMeshObject(lm, matsetMgr->get("rally_track_01"));
-	lmo->debug_draw = true;
-	renderObjs.push_back(lmo);
-
-	// create aabb tree
-	tree = new AABBTree();
-
-	// add unit sphere in the middle, and torus to the left, monke to the right
-	MeshObject* obj = new MeshObject(
-		meshMgr->get("sphere.bcf"),
-		matsetMgr->get("phong")
-	);
-
-	renderObjs.push_back(obj);
-	tree->insert(new AABBNode(obj));
-
-	// monke?
-	obj = (new MeshObject(
-		meshMgr->get("weirdcube.bcf"),
-		matsetMgr->get("phong")
-	))->setPosition(glm::vec3(2.2, 0.0, 0.0));
-	renderObjs.push_back(obj);
-	tree->insert(new AABBNode(obj));
-
-	// torus?
-	obj = (new MeshObject(
-		meshMgr->get("weirdsphere.bcf"),
-		matsetMgr->get("phong")
-	))->setPosition(glm::vec3(-2.2, 0.0, 0.0));
-	renderObjs.push_back(obj);
-	tree->insert(new AABBNode(obj));
-
-	// add unit sphere in the middle, and torus to the left, monke to the right
-	obj = (new MeshObject(
-		meshMgr->get("sphere.bcf"),
-		matsetMgr->get("reflect_env2")
-	))->setPosition(glm::vec3(7.f, 1.f, 2.f));
-
-	renderObjs.push_back(obj);
-	tree->insert(new AABBNode(obj));
-	// test to create object
-	/*for (int i = 0; i < 0; i++) {
-		spawnRandomObject();
-	}*/
-	SDL_Log("DEBUG_PRINT_AABB_TREE!!\n");
-	tree->debugPrint();
+	//// load textures
+	//textureMgr->load("env.jpg");
+	//textureMgr->load("env2.jpg");
+	//textureMgr->load("env3.jpg");
+	//textureMgr->load("road_on_grass.png")->withWrap(GL_REPEAT, GL_REPEAT);
+	//textureMgr->load("trimsheet_01.png");
+	//textureMgr->load("ibl_spec.jpg");
+	//textureMgr->load("ibl_diff.jpg");
 }
 
 void Game::spawnRandomObject() {
@@ -286,6 +198,8 @@ void Game::onDestroy() {
 	largeMeshMgr->printDebug();
 	SDL_Log("++TEXTURES++\n");
 	textureMgr->printDebug();
+	SDL_Log("++SHADER_SOURCES++\n");
+	sourceMgr->printDebug();
 
 	destroyImGui();
 	// delete renderer
@@ -298,6 +212,7 @@ void Game::onDestroy() {
 	delete materialMgr;
 	delete matsetMgr;
 	delete textureMgr;
+	delete sourceMgr;
 	// delete tree
 	delete tree;
 
@@ -321,17 +236,12 @@ void Game::onRender(float dt) {
 
 	//SDL_Log("Camera pos: %.4f, %.4f, %.4f\n", camPos.x, camPos.y, camPos.z);
 	m_renderer->getCamera()->setPosition(camPos);
-	m_renderer->getCamera()->setTarget(-camPos);
-
+	
 	// clear depth and color
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// 3d renderer
 	m_renderer->draw(this->renderObjs, dt);
-
-	// debug draw aabb tree
-	if (m_renderer->drawDebug)
-		tree->debugDraw(m_renderer);
 
 	// 2d rendering
 	glDisable(GL_DEPTH_TEST);
@@ -350,39 +260,6 @@ void Game::onRender(float dt) {
 			title += "MOUSE_CLEAR";
 		}
 
-		// window to render tree structure
-		ImGui::Begin("TREE_STRUCTURE", 0, ImGuiWindowFlags_AlwaysAutoResize);
-			ImGui::Text("FB_SIZE: %.2f, %.2f", 
-				io.DisplaySize.x * io.DisplayFramebufferScale.x, 
-				io.DisplaySize.y * io.DisplayFramebufferScale.y);
-			if (tree->root)
-				debugPrint(tree->root);
-		ImGui::End();
-
-		// window for material editing (phong)
-		ImGui::Begin("MATERIAL: phong", 0, ImGuiWindowFlags_AlwaysAutoResize);
-		{
-			// diffuse, specular, and shininess
-			Material* mat = materialMgr->get("phong");
-			ImGui::ColorEdit4("diffuse", glm::value_ptr(mat->shData->diffuseColor), ImGuiColorEditFlags_Float);
-			ImGui::ColorEdit4("specular", glm::value_ptr(mat->shData->specularColor), ImGuiColorEditFlags_Float);
-			ImGui::SliderFloat("gloss", &mat->shData->glossiness, 0.f, 1.f);
-			ImGui::SliderFloat("F0", &mat->shData->fresnel0, 0.f, 1.f);
-			ImGui::Separator();
-
-			if (ImGui::CollapsingHeader("textures")) {
-				for (int i = 0; i < mat->shData->texture.size(); i++) {
-					if (i > 0)
-						ImGui::SameLine();
-					ImGui::BeginGroup();
-						ImGui::Text("texture_%2d", i);
-						ImGui::Image((ImTextureID)mat->shData->texture[i]->texId, ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0), ImVec4(1,1,1,1), ImVec4(1,1,1,1));
-					ImGui::EndGroup();
-				}
-			}
-		}
-		ImGui::End();
-
 		// window app config
 		ImGui::Begin("App Config", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 			ImGui::TextColored(ImVec4(1, 1, 0, 1), "FPS: %d", fps);
@@ -391,122 +268,6 @@ void Game::onRender(float dt) {
 			ImGui::SameLine();
 			if (ImGui::Button("QUIT")) {
 			    this->setRunFlag(false);
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("ADD OBJ")) {
-				this->spawnRandomObject();
-			}
-			if (ImGui::Button("PRINT_TREE")) {
-				tree->debugPrint();
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("RESET_DBG")) {
-				tree->resetDebugBox();
-			}
-			ImGui::SameLine();
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.2f, .0f, .0f, 1.f));
-			if (ImGui::Button("DELTREE")) {
-				clearTrees();
-			}
-			ImGui::PopStyleColor();
-			ImGui::SameLine();
-			if (ImGui::Button("SUNFROMCAM")) {
-				// set sun direction from camera
-				m_renderer->getSceneData()
-					->setSunDirection(
-						-glm::normalize(m_renderer->getCamera()->getDir())
-					);
-			}
-
-			// debug draw
-			ImGui::Checkbox("Draw Active Mesh Only", &lmo->debug_draw);
-			// active mesh?
-			ImGui::SliderInt("active_mesh", &lmo->active_mesh, 0, lmo->lm->mesh_count - 1);
-
-			// debug text
-			if (ImGui::CollapsingHeader("Debugging")) {
-				ImGui::Checkbox("Draw Debug?", &m_renderer->drawDebug);
-				ImGui::ColorEdit4("Box Color", glm::value_ptr(m_renderer->debugColor));
-
-				// draw the frustum info?
-				if (ImGui::CollapsingHeader("Frustum")) {
-					// monke test
-					const Frustum* f = m_renderer->getCamera()->getFrustum();
-
-					Frustum::TestResult res = f->testSphere(glm::vec3(7.f, 1.f, 2.f), 1.f);
-					const char* resText[] = { "FULL IN", "FULL OUT", "PARTIAL" };
-
-					ImGui::Text("Sphere is - %s", resText[res]);
-
-					// now do for the tree?
-					const AABB* b = &lmo->lm->findNodeByMeshId(lmo->active_mesh)->bbox;
-					res = f->testAABB(b);
-					ImGui::Text("Visible Node AABB is - %s", resText[res]);
-
-					// draw em
-					for (int i = 0; i < 6; i++) {
-						const glm::vec4& p = f->planes[i];
-						ImGui::Text("%s : %.2f %.2f %.2f %.2f", Frustum::getPlaneName(i), p.x, p.y, p.z, p.w);
-					}
-				}
-			}
-
-			if (ImGui::CollapsingHeader("Color+Depth Pass")) {
-				RenderPass* rp = m_renderer->getPass("color_depth");
-				if (rp) {
-					if (ImGui::Button("See Cmd Buffer")) {
-						rp->generateDebugString();
-					}
-
-					ImGui::SameLine();
-					// set random matset
-					if (ImGui::Button("Randomize Matset")) {
-						// reset all object's matset, except the last one
-						for (int i = 1; i < renderObjs.size(); i++) {
-							((MeshObject*)renderObjs[i])->ms = matsetMgr->getRandom();
-						}
-						//rp->generateDebugString();
-					}
-
-					// spawn multiple text colored, alternated color
-					ImVec4 colors[2] = {
-						ImVec4(1,1,0,1), ImVec4(0,1,0,1)
-					};
-
-					std::string txt = rp->debugString;	// copy string
-					std::string delim = "\n";
-					std::string line;
-					size_t pos;
-					int cnt = 0;
-					while ((pos = txt.find(delim)) != std::string::npos) {
-						line = txt.substr(0, pos);
-						txt.erase(0, pos + delim.length());
-
-						ImGui::TextColored(colors[cnt++ % 2], line.c_str(), "");
-					}
-				}
-			}
-			
-			if (ImGui::CollapsingHeader("Background Settings")) {
-				ImGui::ColorPicker4("Color", glm::value_ptr(color));
-			}
-
-			if (ImGui::CollapsingHeader("Sun Settings")) {
-				// put sun settings here?
-				ImGui::ColorEdit4("Sun Color", glm::value_ptr(m_renderer->getSceneData()->sunColor));
-				//ImGui::ColorPicker4("Sun Intensity", glm::value_ptr(m_renderer->getSceneData()->sunIntensity));
-				ImGui::SliderFloat("Sun Intensity", &m_renderer->getSceneData()->sunIntensity, 0.1f, 10.0f);
-				// renormalize at the end?
-				ImGui::DragFloat3("Sun Direction", glm::value_ptr(m_renderer->getSceneData()->sunDirection));
-				
-				// only renormalize after we dont receive input
-				if (!io.WantCaptureMouse) {
-					m_renderer->getSceneData()->setSunDirection( glm::normalize(m_renderer->getSceneData()->sunDirection));
-				}
-			}
-
-			if (ImGui::CollapsingHeader("Scene Settings")) {
-				ImGui::ColorEdit4("Scene Ambient", glm::value_ptr(m_renderer->getSceneData()->ambientColor));
 			}
 
 		ImGui::End();

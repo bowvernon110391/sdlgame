@@ -29,9 +29,9 @@ public:
 		assert(defaultLoader != nullptr);
 
 		// if no default res, make our own
-		if (!nullResource) {
-			nullResource = new Resource();
-		}
+		/*if (!this->nullResource) {
+			this->nullResource = new Resource();
+		}*/
 
 		currentLoader = loaderFn;
 

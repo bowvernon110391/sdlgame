@@ -5,6 +5,7 @@
 #include "Mesh.h"
 #include "Material.h"
 #include "LargeMesh.h"
+#include "ShaderSource.h"
 
 Shader* Game::loadShader(const char* name) {
 	std::string vsFilename = std::string(name) + ".vert";
@@ -40,4 +41,14 @@ MaterialSet* Game::loadMaterialSet(const char* name) {
 LargeMesh* Game::loadLargeMesh(const char* name)
 {
 	return LargeMesh::loadLMFFromFile(name)->createBufferObjects();
+}
+
+ShaderSource* Game::loadShaderSource(const char* name)
+{
+	char* buf = Helper::readFileContent(name);
+
+	ShaderSource* src = new ShaderSource(buf);
+
+	delete[] buf;
+	return src;
 }

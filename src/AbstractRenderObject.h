@@ -3,6 +3,7 @@
 #include <assert.h>
 #include "AABB.h"
 #include "render_enums.h"
+#include "Traits.h"
 
 class Shader;
 class Mesh;
@@ -17,7 +18,7 @@ class RenderPass;
 /// - PRE-RENDER UPDATE
 /// - FILL RENDERABLE
 /// </summary>
-class AbstractRenderObject {
+class AbstractRenderObject : public IBoundable {
 public:
 	// pure virtual
 	virtual void setupData(Shader* s, RenderPass* rp) = 0;

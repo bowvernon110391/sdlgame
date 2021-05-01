@@ -15,6 +15,7 @@ class MaterialSet;
 class LargeMesh;
 class AABBTree;
 class AABBNode;
+class ShaderSource;
 
 // #define GLM_FORCE_MESSAGES
 
@@ -50,6 +51,7 @@ private:
     static Material* loadBasicMaterial(const char* name);
     static MaterialSet* loadMaterialSet(const char* name);
     static LargeMesh* loadLargeMesh(const char* name);
+    static ShaderSource* loadShaderSource(const char* name);
 
     // THE renderer
     Renderer* m_renderer;
@@ -62,6 +64,8 @@ private:
     ResourceManager<Material> *materialMgr;
     ResourceManager<Texture2D> *textureMgr;
     ResourceManager<MaterialSet> *matsetMgr;
+    ResourceManager<ShaderSource>* sourceMgr;
+    
 
     std::vector<AbstractRenderObject*> renderObjs;
 
